@@ -17,6 +17,7 @@ import NotFound from './pages/NotFound';
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import Inventory from './pages/admin/Inventory';
+import Orders from './pages/admin/Orders';
 
 // Components
 import Header from './components/Header';
@@ -181,6 +182,7 @@ function App() {
                       <Route path="/" element={<AdminDashboard />} />
                       <Route path="/dashboard" element={<AdminDashboard />} />
                       <Route path="/inventory" element={<Inventory />} />
+                      <Route path="/orders" element={<Orders />} />
                       {/* Add other admin routes here */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

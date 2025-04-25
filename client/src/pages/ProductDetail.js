@@ -170,9 +170,9 @@ const ProductDetail = () => {
         setQuantity(result.availableStock);
       }
     } else {
-      setSnackbarMessage('Product added to cart!');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
+    setSnackbarMessage('Product added to cart!');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
     }
   };
 

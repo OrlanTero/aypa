@@ -19,16 +19,16 @@ exports.auth = async (req, res, next) => {
                 req.header('Authorization')?.replace('Bearer ', '') || 
                 req.query.token;
 
-  if (!token) {
+    if (!token) {
     console.log('Auth failed: No token provided');
     return res.status(403).json({ msg: 'No token provided, authentication required' });
-  }
+    }
 
   try {
     // Verify the token
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      req.user = decoded.user;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded.user;
       
       console.log('Token decoded successfully:', { userId: decoded.user.id, role: decoded.user.role });
       
@@ -39,7 +39,7 @@ exports.auth = async (req, res, next) => {
         return res.status(404).json({ msg: 'User no longer exists' });
       }
 
-      next();
+    next();
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
       if (jwtError.name === 'TokenExpiredError') {

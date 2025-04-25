@@ -105,8 +105,8 @@ export const CartProvider = ({ children }) => {
         productId,
         quantity,
         price,
-        size,
-        color
+            size,
+            color
       }, config);
       
       console.log("Item added to cart:", res.data);
