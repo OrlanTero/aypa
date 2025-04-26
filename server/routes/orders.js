@@ -10,7 +10,13 @@ const Cart = require('../models/Cart');
 // @access  Private/Admin
 router.get('/', [auth, admin], async (req, res) => {
   try {
-    const orders = await Order.find().populate('user', 'name email').sort({ createdAt: -1 });
+    const orders = await Order.find()
+      .populate('user', 'name email')
+      .populate({
+        path: 'items.product',
+        select: 'name imageUrls price category brand'
+      })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     console.error(err.message);
@@ -23,7 +29,12 @@ router.get('/', [auth, admin], async (req, res) => {
 // @access  Private
 router.get('/myorders', auth, async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ user: req.user.id })
+      .populate({
+        path: 'items.product',
+        select: 'name imageUrls price category sizes colors brand stock description'
+      })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     console.error(err.message);
@@ -36,7 +47,12 @@ router.get('/myorders', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate({
+        path: 'items.product',
+        select: 'name imageUrls price category sizes colors brand stock description'
+      });
 
     // Check if order exists
     if (!order) {
@@ -66,8 +82,18 @@ router.post('/', auth, async (req, res) => {
     items,
     totalAmount,
     shippingAddress,
-    paymentMethod
+    paymentMethod,
+    paymentInfo
   } = req.body;
+
+  // Debug logging
+  console.log('==== ORDER CREATE REQUEST ====');
+  console.log('Payment Method:', paymentMethod);
+  console.log('Payment Info Present:', !!paymentInfo);
+  if (paymentInfo) {
+    console.log('Payment Info:', JSON.stringify(paymentInfo));
+  }
+  console.log('============================');
 
   try {
     // Verify all items have sufficient stock before creating order
@@ -92,7 +118,7 @@ router.post('/', auth, async (req, res) => {
     }
 
     // Create new order
-    const newOrder = new Order({
+    const orderData = {
       user: req.user.id,
       items,
       totalAmount,
@@ -100,7 +126,24 @@ router.post('/', auth, async (req, res) => {
       paymentMethod,
       paymentStatus: 'pending',
       orderStatus: 'pending'
-    });
+    };
+
+    // Add payment info if provided
+    if (paymentInfo && (paymentMethod === 'bank_transfer' || paymentMethod === 'paypal')) {
+      orderData.paymentInfo = {
+        ...paymentInfo,
+        dateCreated: paymentInfo.dateCreated ? new Date(paymentInfo.dateCreated) : new Date(),
+        verificationStatus: 'pending'
+      };
+      console.log('Added payment info to order data:', JSON.stringify(orderData.paymentInfo));
+    } else {
+      console.log('Did not add payment info. Conditions:', {
+        paymentInfoPresent: !!paymentInfo,
+        correctPaymentMethod: paymentMethod === 'bank_transfer' || paymentMethod === 'paypal'
+      });
+    }
+
+    const newOrder = new Order(orderData);
 
     // Update product stock quantities
     const stockUpdates = items.map(item => {
@@ -144,7 +187,112 @@ router.put('/:id/status', [auth, admin], async (req, res) => {
 
     if (orderStatus) order.orderStatus = orderStatus;
     if (paymentStatus) order.paymentStatus = paymentStatus;
-    if (trackingNumber) order.trackingNumber = trackingNumber;
+    if (trackingNumber) {
+      if (!order.deliveryInfo) {
+        order.deliveryInfo = {};
+      }
+      order.deliveryInfo.trackingNumber = trackingNumber;
+    }
+
+    const updatedOrder = await order.save();
+    res.json(updatedOrder);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   PUT api/orders/:id/verify-payment
+// @desc    Verify payment for an order (admin only)
+// @access  Private/Admin
+router.put('/:id/verify-payment', [auth, admin], async (req, res) => {
+  const { verificationStatus, verificationNotes } = req.body;
+
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+
+    if (!order.paymentInfo) {
+      return res.status(400).json({ msg: 'No payment information available for this order' });
+    }
+
+    // Update payment verification
+    order.paymentInfo.verificationStatus = verificationStatus;
+    if (verificationNotes) order.paymentInfo.verificationNotes = verificationNotes;
+    order.paymentInfo.verifiedBy = req.user.id;
+    order.paymentInfo.verifiedAt = Date.now();
+
+    // Update payment status based on verification status
+    if (verificationStatus === 'verified') {
+      order.paymentStatus = 'completed';
+      // If the order was pending, move it to processing
+      if (order.orderStatus === 'pending') {
+        order.orderStatus = 'processing';
+      }
+    } else if (verificationStatus === 'rejected') {
+      order.paymentStatus = 'failed';
+    }
+
+    const updatedOrder = await order.save();
+    res.json(updatedOrder);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   PUT api/orders/:id/delivery
+// @desc    Update delivery information (admin only)
+// @access  Private/Admin
+router.put('/:id/delivery', [auth, admin], async (req, res) => {
+  const { 
+    service, 
+    driverName, 
+    contactNumber, 
+    trackingNumber, 
+    trackingLink,
+    estimatedDelivery,
+    notes
+  } = req.body;
+
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+
+    // Initialize deliveryInfo if it doesn't exist
+    if (!order.deliveryInfo) {
+      order.deliveryInfo = {};
+    }
+
+    // Update delivery information
+    if (service) order.deliveryInfo.service = service;
+    if (driverName) order.deliveryInfo.driverName = driverName;
+    if (contactNumber) order.deliveryInfo.contactNumber = contactNumber;
+    if (trackingNumber) order.deliveryInfo.trackingNumber = trackingNumber;
+    if (trackingLink) order.deliveryInfo.trackingLink = trackingLink;
+    if (estimatedDelivery) order.deliveryInfo.estimatedDelivery = new Date(estimatedDelivery);
+    if (notes) order.deliveryInfo.notes = notes;
+    
+    // Record who assigned the delivery
+    order.deliveryInfo.assignedBy = req.user.id;
+    order.deliveryInfo.assignedAt = Date.now();
+
+    // If delivery info is being added, update order status to shipped
+    if (order.orderStatus === 'processing') {
+      order.orderStatus = 'shipped';
+    }
 
     const updatedOrder = await order.save();
     res.json(updatedOrder);

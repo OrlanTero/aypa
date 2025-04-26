@@ -205,6 +205,11 @@ const CustomerLayout = ({ children }) => {
               <Button color="inherit" component={Link} to="/products">
                 Products
               </Button>
+              {isAuthenticated && (
+                <Button color="inherit" component={Link} to="/orders">
+                  Orders
+                </Button>
+              )}
             </Box>
           )}
 

@@ -4,6 +4,43 @@ const User = require('../models/User');
 const Cart = require('../models/Cart');
 const { auth, admin } = require('../middleware/auth');
 const Product = require('../models/Product');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    const uploadDir = 'uploads/avatars';
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function(req, file, cb) {
+    cb(null, `user-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+// File filter function
+const fileFilter = (req, file, cb) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// Create upload instance
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // *** CART ROUTES FIRST TO PREVENT PARAMETER CONFLICTS ***
 
@@ -247,21 +284,52 @@ router.get('/profile', auth, async (req, res) => {
 // @route   PUT api/users/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', auth, async (req, res) => {
-  const { name, email, phone, address } = req.body;
-
-  // Build user object
-  const userFields = {};
-  if (name) userFields.name = name;
-  if (email) userFields.email = email;
-  if (phone) userFields.phone = phone;
-  if (address) userFields.address = address;
-
+router.put('/profile', auth, upload.single('avatar'), async (req, res) => {
   try {
+    const { name, email, phone } = req.body;
+    let address = req.body.address;
+
+    // Parse address if it's sent as query string format
+    if (typeof address === 'string') {
+      try {
+        address = JSON.parse(address);
+      } catch (err) {
+        // If parsing fails, try to parse from query params format
+        address = {};
+        const addressKeys = ['street', 'city', 'state', 'zipCode', 'country'];
+        addressKeys.forEach(key => {
+          if (req.body[`address[${key}]`]) {
+            address[key] = req.body[`address[${key}]`];
+          }
+        });
+      }
+    }
+
+    // Build user object
+    const userFields = {};
+    if (name) userFields.name = name;
+    if (email) userFields.email = email;
+    if (phone) userFields.phone = phone;
+    if (address) userFields.address = address;
+    
+    // Add avatar path if uploaded
+    if (req.file) {
+      userFields.avatar = req.file.path;
+    }
+
     let user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // If user uploads a new avatar, delete the old one
+    if (req.file && user.avatar) {
+      try {
+        fs.unlinkSync(user.avatar);
+      } catch (err) {
+        console.error('Error deleting old avatar:', err);
+      }
     }
 
     // Update user

@@ -321,7 +321,11 @@ const Header = () => {
                       Admin Dashboard
                     </MenuItem>
                   )}
-                  <MenuItem onClick={handleUserMenuClose}>
+                  <MenuItem 
+                    component={RouterLink}
+                    to={isAdmin ? "/admin/profile" : "/profile"}
+                    onClick={handleUserMenuClose}
+                  >
                     <PersonIcon fontSize="small" sx={{ mr: 1.5, color: theme.palette.primary.main }} />
                     My Account
                   </MenuItem>

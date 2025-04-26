@@ -64,7 +64,7 @@ const AdminLayout = ({ children }) => {
     { text: 'Inventory', icon: <InventoryIcon />, path: '/admin/inventory' },
     { text: 'Orders', icon: <OrdersIcon />, path: '/admin/orders' },
     { text: 'Reports', icon: <ReportsIcon />, path: '/admin/reports' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' }
+    { text: 'Profile', icon: <PersonIcon />, path: '/admin/profile' }
   ];
 
   const isActive = (path) => {
@@ -177,7 +177,7 @@ const AdminLayout = ({ children }) => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <MenuItem onClick={handleUserMenuClose}>
+            <MenuItem onClick={() => { handleUserMenuClose(); navigate('/admin/profile'); }}>
               <ListItemIcon>
                 <PersonIcon fontSize="small" />
               </ListItemIcon>

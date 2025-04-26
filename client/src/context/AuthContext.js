@@ -141,6 +141,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Update user in context
+  const updateUser = (userData) => {
+    setUser(userData);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -154,6 +159,7 @@ export const AuthProvider = ({ children }) => {
         loginAdmin,
         logout,
         updateProfile,
+        updateUser,
         setError
       }}
     >

@@ -37,6 +37,8 @@ import { AuthContext } from '../context/AuthContext';
 import { ORDER_ENDPOINTS, USER_ENDPOINTS } from '../constants/apiConfig';
 import { formatCurrency } from '../utils/formatters';
 import defaultProductImage from '../assets/default-product.jpg';
+import gcashQR from '../assets/gcash-qr.png';
+import paymayaQR from '../assets/paymaya-qr.png';
 
 // Steps in the checkout process
 const steps = ['Shipping Address', 'Delivery Method', 'Payment Method', 'Review Order'];
@@ -103,6 +105,14 @@ const Checkout = () => {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const [selectedRegion, setSelectedRegion] = useState('');
   const [availableCities, setAvailableCities] = useState([]);
+  
+  // New state for payment details
+  const [paymentDetails, setPaymentDetails] = useState({
+    accountName: '',
+    accountNumber: '',
+    referenceNumber: '',
+    dateCreated: new Date().toISOString().split('T')[0]
+  });
 
   // Form state for new address
   const [addressForm, setAddressForm] = useState({
@@ -264,6 +274,11 @@ const Checkout = () => {
         
         saveAddressToProfile();
       }
+    } else if (activeStep === 2) {
+      // Validate payment details
+      if (!validatePaymentDetails()) {
+        return;
+      }
     }
     
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -304,6 +319,55 @@ const Checkout = () => {
     setAddressForm({ ...addressForm, city: event.target.value });
   };
 
+  const handlePaymentDetailsChange = (event) => {
+    const { name, value } = event.target;
+    setPaymentDetails({ ...paymentDetails, [name]: value });
+  };
+
+  const validatePaymentDetails = () => {
+    if (paymentMethod !== 'gcash' && paymentMethod !== 'paymaya') {
+      return true;
+    }
+    
+    if (!paymentDetails.accountName || paymentDetails.accountName.trim() === '') {
+      setNotification({
+        open: true,
+        message: 'Account name is required',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    if (!paymentDetails.accountNumber || paymentDetails.accountNumber.trim() === '') {
+      setNotification({
+        open: true,
+        message: 'Account number is required',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    if (!paymentDetails.referenceNumber || paymentDetails.referenceNumber.trim() === '') {
+      setNotification({
+        open: true,
+        message: 'Reference number is required',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    if (!paymentDetails.dateCreated) {
+      setNotification({
+        open: true,
+        message: 'Payment date is required',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handlePlaceOrder = async () => {
     try {
       setLoading(true);
@@ -311,6 +375,12 @@ const Checkout = () => {
       // Ensure token is available
       if (!token) {
         throw new Error('Authentication required to place an order');
+      }
+
+      // Validate payment details
+      if (!validatePaymentDetails()) {
+        setLoading(false);
+        return;
       }
 
       // Get the selected shipping address
@@ -334,27 +404,35 @@ const Checkout = () => {
       // Map our payment method IDs to the ones expected by the API
       const apiPaymentMethod = {
         'cash_on_delivery': 'cash_on_delivery',
-        'gcash': 'bank_transfer', // Using bank_transfer as a substitute
-        'paymaya': 'paypal'       // Using paypal as a substitute
+        'gcash': 'bank_transfer', 
+        'paymaya': 'bank_transfer'
       }[paymentMethod] || 'cash_on_delivery';
 
-      console.log('Placing order with token:', token.substring(0, 10) + '...');
-      console.log('Order data:', {
-        items: items.length,
+      // Create the base request object
+      const requestData = {
+        items,
         totalAmount: total,
-        shippingAddress: Object.keys(shippingAddress),
+        shippingAddress,
         paymentMethod: apiPaymentMethod
-      });
+      };
       
-      // Create the order
+      // Add payment info directly to the request object for GCash or PayMaya
+      if (paymentMethod === 'gcash' || paymentMethod === 'paymaya') {
+        requestData.paymentInfo = {
+          accountName: paymentDetails.accountName,
+          accountNumber: paymentDetails.accountNumber,
+          referenceNumber: paymentDetails.referenceNumber,
+          dateCreated: new Date(paymentDetails.dateCreated).toISOString()
+        };
+        console.log('Added payment info to request:', JSON.stringify(requestData.paymentInfo));
+      }
+      
+      // Log the full request
+      console.log('Full order request:', JSON.stringify(requestData));
+      
       const res = await axios.post(
         ORDER_ENDPOINTS.CREATE,
-        {
-          items,
-          totalAmount: total,
-          shippingAddress,
-          paymentMethod: apiPaymentMethod
-        },
+        requestData,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -640,29 +718,193 @@ const Checkout = () => {
             
             {paymentMethod === 'gcash' && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant="subtitle1" gutterBottom fontWeight="bold">
                   GCash Payment Instructions:
                 </Typography>
-                <Typography variant="body2">
-                  • You will receive payment instructions after placing your order.
-                </Typography>
-                <Typography variant="body2">
-                  • Please complete the payment within 24 hours to avoid order cancellation.
-                </Typography>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" paragraph>
+                        • Scan the QR code to pay via GCash
+                      </Typography>
+                      <Typography variant="body2" paragraph>
+                        • Please complete the payment within 24 hours to avoid order cancellation
+                      </Typography>
+                      <Typography variant="body2" paragraph>
+                        • After payment, fill in the form with your payment details
+                      </Typography>
+                    </Box>
+                    
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                      Payment Details
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Account Name"
+                          name="accountName"
+                          value={paymentDetails.accountName}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Account Number"
+                          name="accountNumber"
+                          value={paymentDetails.accountNumber}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Reference Number"
+                          name="referenceNumber"
+                          value={paymentDetails.referenceNumber}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                          helperText="Enter the reference number from your GCash transaction"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Date Created"
+                          name="dateCreated"
+                          type="date"
+                          value={paymentDetails.dateCreated}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                    <Box
+                      component="img"
+                      src={gcashQR}
+                      alt="GCash QR Code"
+                      sx={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        maxHeight: 300,
+                        border: '1px solid #eee',
+                        borderRadius: 1,
+                        p: 2
+                      }}
+                    />
+                  </Grid>
+                </Grid>
               </Box>
             )}
             
             {paymentMethod === 'paymaya' && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant="subtitle1" gutterBottom fontWeight="bold">
                   PayMaya Payment Instructions:
                 </Typography>
-                <Typography variant="body2">
-                  • You will receive payment instructions after placing your order.
-                </Typography>
-                <Typography variant="body2">
-                  • Please complete the payment within 24 hours to avoid order cancellation.
-                </Typography>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" paragraph>
+                        • Scan the QR code to pay via PayMaya
+                      </Typography>
+                      <Typography variant="body2" paragraph>
+                        • Please complete the payment within 24 hours to avoid order cancellation
+                      </Typography>
+                      <Typography variant="body2" paragraph>
+                        • After payment, fill in the form with your payment details
+                      </Typography>
+                    </Box>
+                    
+                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                      Payment Details
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Account Name"
+                          name="accountName"
+                          value={paymentDetails.accountName}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Account Number"
+                          name="accountNumber"
+                          value={paymentDetails.accountNumber}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Reference Number"
+                          name="referenceNumber"
+                          value={paymentDetails.referenceNumber}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                          helperText="Enter the reference number from your PayMaya transaction"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          required
+                          fullWidth
+                          label="Date Created"
+                          name="dateCreated"
+                          type="date"
+                          value={paymentDetails.dateCreated}
+                          onChange={handlePaymentDetailsChange}
+                          margin="dense"
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                    <Box
+                      component="img"
+                      src={paymayaQR}
+                      alt="PayMaya QR Code"
+                      sx={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        maxHeight: 300,
+                        border: '1px solid #eee',
+                        borderRadius: 1,
+                        p: 2
+                      }}
+                    />
+                  </Grid>
+                </Grid>
               </Box>
             )}
             
@@ -717,6 +959,31 @@ const Checkout = () => {
                 <Typography variant="body2">
                   {paymentMethods.find(method => method.id === paymentMethod)?.label}
                 </Typography>
+                
+                {(paymentMethod === 'gcash' || paymentMethod === 'paymaya') && (
+                  <Box sx={{ mt: 1, pl: 1, borderLeft: '2px solid #eee' }}>
+                    {paymentDetails.referenceNumber ? (
+                      <>
+                        <Typography variant="body2">
+                          <strong>Reference Number:</strong> {paymentDetails.referenceNumber}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Account Name:</strong> {paymentDetails.accountName}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Account Number:</strong> {paymentDetails.accountNumber}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Payment Date:</strong> {new Date(paymentDetails.dateCreated).toLocaleDateString()}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography variant="body2" color="error">
+                        Payment details incomplete - please go back and complete them
+                      </Typography>
+                    )}
+                  </Box>
+                )}
               </CardContent>
             </Card>
             

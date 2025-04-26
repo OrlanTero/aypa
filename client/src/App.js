@@ -11,13 +11,18 @@ import ProductList from './pages/ProductList';
 import Checkout from './pages/Checkout';
 import CustomerLogin from './pages/customer/Login';
 import CustomerRegister from './pages/customer/Register';
+import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import NotFound from './pages/NotFound';
+import ProfilePage from './pages/Profile';
 
 // Admin Pages
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import Inventory from './pages/admin/Inventory';
-import Orders from './pages/admin/Orders';
+import AdminOrders from './pages/admin/Orders';
+import Reports from './pages/admin/Reports';
+import AdminProfile from './pages/admin/Profile';
 
 // Components
 import Header from './components/Header';
@@ -182,7 +187,9 @@ function App() {
                       <Route path="/" element={<AdminDashboard />} />
                       <Route path="/dashboard" element={<AdminDashboard />} />
                       <Route path="/inventory" element={<Inventory />} />
-                      <Route path="/orders" element={<Orders />} />
+                      <Route path="/orders" element={<AdminOrders />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/profile" element={<AdminProfile />} />
                       {/* Add other admin routes here */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
@@ -196,6 +203,21 @@ function App() {
               
               {/* Customer Routes */}
               <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
+              <Route path="/profile" element={
+                <CustomerProtectedRoute>
+                  <CustomerLayout><ProfilePage /></CustomerLayout>
+                </CustomerProtectedRoute>
+              } />
+              <Route path="/orders" element={
+                <CustomerProtectedRoute>
+                  <CustomerLayout><Orders /></CustomerLayout>
+                </CustomerProtectedRoute>
+              } />
+              <Route path="/orders/:id" element={
+                <CustomerProtectedRoute>
+                  <CustomerLayout><OrderDetail /></CustomerLayout>
+                </CustomerProtectedRoute>
+              } />
               <Route path="/cart" element={
                 <CustomerProtectedRoute>
                   <CustomerLayout><Cart /></CustomerLayout>

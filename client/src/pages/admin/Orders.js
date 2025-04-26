@@ -36,7 +36,12 @@ import {
   InputAdornment,
   useTheme,
   alpha,
-  Stack
+  Stack,
+  Tabs,
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -44,7 +49,12 @@ import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Receipt as ReceiptIcon,
-  LocalShipping as ShippingIcon
+  LocalShipping as ShippingIcon,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircle as VerifiedIcon,
+  Cancel as RejectedIcon,
+  Payment as PaymentIcon,
+  LocalShipping as DeliveryIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { ORDER_ENDPOINTS } from '../../constants/apiConfig';
@@ -61,7 +71,32 @@ const getStatusColor = (status) => {
     'delivered': 'success',
     'cancelled': 'error'
   };
-  return statusMap[status] || 'default';
+  return statusMap[status.toLowerCase()] || 'default';
+};
+
+// Payment status color mapping
+const getPaymentStatusColor = (status) => {
+  if (!status) return 'default';
+  
+  const statusMap = {
+    'pending': 'warning',
+    'completed': 'success',
+    'failed': 'error',
+    'refunded': 'info'
+  };
+  return statusMap[status.toLowerCase()] || 'default';
+};
+
+// Payment verification status color mapping
+const getVerificationStatusColor = (status) => {
+  if (!status) return 'default';
+  
+  const statusMap = {
+    'pending': 'warning',
+    'verified': 'success',
+    'rejected': 'error'
+  };
+  return statusMap[status.toLowerCase()] || 'default';
 };
 
 // Format date to readable string
@@ -76,6 +111,16 @@ const formatDate = (dateString) => {
     minute: '2-digit'
   });
 };
+
+// Delivery service options
+const deliveryServices = [
+  'Grab', 
+  'LBC', 
+  'LalaMove', 
+  'JRS', 
+  'J&T', 
+  'Other'
+];
 
 const Orders = () => {
   const theme = useTheme();
@@ -104,6 +149,27 @@ const Orders = () => {
     cancelled: 0,
     revenue: 0
   });
+  
+  // New state variables for payment verification and delivery
+  const [activeTab, setActiveTab] = useState(0);
+  const [paymentVerificationDialogOpen, setPaymentVerificationDialogOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState('pending');
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState({
+    service: '',
+    driverName: '',
+    contactNumber: '',
+    trackingNumber: '',
+    trackingLink: '',
+    estimatedDelivery: '',
+    notes: ''
+  });
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [deliverySuccess, setDeliverySuccess] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -140,12 +206,15 @@ const Orders = () => {
     };
 
     orderData.forEach(order => {
-      if (order.status) {
-        newStats[order.status] = (newStats[order.status] || 0) + 1;
+      if (order.orderStatus) {
+        const status = order.orderStatus.toLowerCase();
+        if (newStats.hasOwnProperty(status)) {
+          newStats[status] += 1;
+        }
       }
       
-      if (order.status !== 'cancelled') {
-        newStats.revenue += Number(order.totalPrice) || 0;
+      if (order.orderStatus !== 'cancelled') {
+        newStats.revenue += Number(order.totalAmount) || 0;
       }
     });
 
@@ -172,7 +241,7 @@ const Orders = () => {
 
   const handleOpenStatusDialog = (order) => {
     setSelectedOrder(order);
-    setNewStatus(order.status);
+    setNewStatus(order.orderStatus || 'pending');
     setStatusUpdateDialogOpen(true);
   };
 
@@ -190,16 +259,16 @@ const Orders = () => {
 
     try {
       setStatusLoading(true);
-      await axios.put(ORDER_ENDPOINTS.UPDATE_STATUS(selectedOrder._id), { status: newStatus });
+      await axios.put(ORDER_ENDPOINTS.UPDATE_STATUS(selectedOrder._id), { orderStatus: newStatus });
       
       // Update the order in the state
       setOrders(orders.map(order => 
-        order._id === selectedOrder._id ? { ...order, status: newStatus } : order
+        order._id === selectedOrder._id ? { ...order, orderStatus: newStatus } : order
       ));
       
       setStatusUpdateSuccess(true);
       calculateStats(orders.map(order => 
-        order._id === selectedOrder._id ? { ...order, status: newStatus } : order
+        order._id === selectedOrder._id ? { ...order, orderStatus: newStatus } : order
       ));
       
       // Close dialog after short delay
@@ -212,6 +281,163 @@ const Orders = () => {
       setError('Failed to update order status.');
     } finally {
       setStatusLoading(false);
+    }
+  };
+
+  // Handle tab change in order detail dialog
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
+  // Open payment verification dialog
+  const handleOpenPaymentVerification = () => {
+    if (!selectedOrder) return;
+    
+    // Initialize with existing verification status if available
+    if (selectedOrder.paymentInfo && selectedOrder.paymentInfo.verificationStatus) {
+      setVerificationStatus(selectedOrder.paymentInfo.verificationStatus);
+      setVerificationNotes(selectedOrder.paymentInfo.verificationNotes || '');
+    } else {
+      setVerificationStatus('pending');
+      setVerificationNotes('');
+    }
+    
+    setPaymentVerificationDialogOpen(true);
+  };
+
+  // Close payment verification dialog
+  const handleClosePaymentVerification = () => {
+    setPaymentVerificationDialogOpen(false);
+    setVerificationSuccess(false);
+  };
+
+  // Handle verification status change
+  const handleVerificationStatusChange = (event) => {
+    setVerificationStatus(event.target.value);
+  };
+
+  // Handle verification notes change
+  const handleVerificationNotesChange = (event) => {
+    setVerificationNotes(event.target.value);
+  };
+
+  // Submit payment verification
+  const handleVerifyPayment = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      setVerificationLoading(true);
+      
+      const response = await axios.put(
+        ORDER_ENDPOINTS.VERIFY_PAYMENT(selectedOrder._id), 
+        { 
+          verificationStatus,
+          verificationNotes
+        }
+      );
+      
+      // Update the order in the state
+      setOrders(orders.map(order => 
+        order._id === selectedOrder._id ? response.data : order
+      ));
+      
+      // Update the selected order
+      setSelectedOrder(response.data);
+      
+      setVerificationSuccess(true);
+      
+      // Close dialog after short delay
+      setTimeout(() => {
+        setPaymentVerificationDialogOpen(false);
+        setVerificationSuccess(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Error verifying payment:', err);
+      setError('Failed to verify payment.');
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  // Open delivery information dialog
+  const handleOpenDeliveryDialog = () => {
+    if (!selectedOrder) return;
+    
+    // Initialize with existing delivery info if available
+    if (selectedOrder.deliveryInfo) {
+      setDeliveryInfo({
+        service: selectedOrder.deliveryInfo.service || '',
+        driverName: selectedOrder.deliveryInfo.driverName || '',
+        contactNumber: selectedOrder.deliveryInfo.contactNumber || '',
+        trackingNumber: selectedOrder.deliveryInfo.trackingNumber || '',
+        trackingLink: selectedOrder.deliveryInfo.trackingLink || '',
+        estimatedDelivery: selectedOrder.deliveryInfo.estimatedDelivery 
+          ? new Date(selectedOrder.deliveryInfo.estimatedDelivery).toISOString().split('T')[0]
+          : '',
+        notes: selectedOrder.deliveryInfo.notes || ''
+      });
+    } else {
+      setDeliveryInfo({
+        service: '',
+        driverName: '',
+        contactNumber: '',
+        trackingNumber: '',
+        trackingLink: '',
+        estimatedDelivery: '',
+        notes: ''
+      });
+    }
+    
+    setDeliveryDialogOpen(true);
+  };
+
+  // Close delivery dialog
+  const handleCloseDeliveryDialog = () => {
+    setDeliveryDialogOpen(false);
+    setDeliverySuccess(false);
+  };
+
+  // Handle delivery info change
+  const handleDeliveryInfoChange = (event) => {
+    const { name, value } = event.target;
+    setDeliveryInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Submit delivery information
+  const handleUpdateDelivery = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      setDeliveryLoading(true);
+      
+      const response = await axios.put(
+        ORDER_ENDPOINTS.UPDATE_DELIVERY(selectedOrder._id), 
+        deliveryInfo
+      );
+      
+      // Update the order in the state
+      setOrders(orders.map(order => 
+        order._id === selectedOrder._id ? response.data : order
+      ));
+      
+      // Update the selected order
+      setSelectedOrder(response.data);
+      
+      setDeliverySuccess(true);
+      
+      // Close dialog after short delay
+      setTimeout(() => {
+        setDeliveryDialogOpen(false);
+        setDeliverySuccess(false);
+      }, 1500);
+    } catch (err) {
+      console.error('Error updating delivery information:', err);
+      setError('Failed to update delivery information.');
+    } finally {
+      setDeliveryLoading(false);
     }
   };
 
@@ -234,12 +460,12 @@ const Orders = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesStatus = filters.status === 'all' || (order.status && order.status === filters.status);
+    const matchesStatus = filters.status === 'all' || (order.orderStatus && order.orderStatus.toLowerCase() === filters.status);
     const matchesSearch = 
       filters.searchQuery === '' || 
       (order._id && order._id.toLowerCase().includes(filters.searchQuery.toLowerCase())) ||
       (order.user && order.user.name && order.user.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) ||
-      (order.shippingAddress && order.shippingAddress.address && order.shippingAddress.address.toLowerCase().includes(filters.searchQuery.toLowerCase()));
+      (order.shippingAddress && order.shippingAddress.street && order.shippingAddress.street.toLowerCase().includes(filters.searchQuery.toLowerCase()));
     
     return matchesStatus && matchesSearch;
   });
@@ -256,36 +482,34 @@ const Orders = () => {
         name: `Customer ${index % 10 + 1}`,
         email: `customer${index % 10 + 1}@example.com`
       },
-      orderItems: Array(Math.floor(Math.random() * 3) + 1).fill().map((_, itemIndex) => ({
-        _id: `ITEM${300000 + itemIndex}`,
-        name: `Product ${itemIndex + 1}`,
+      items: Array(Math.floor(Math.random() * 3) + 1).fill().map((_, itemIndex) => ({
+        product: {
+          _id: `PROD${300000 + itemIndex}`,
+          name: `Product ${itemIndex + 1}`
+        },
         quantity: Math.floor(Math.random() * 3) + 1,
-        image: `https://source.unsplash.com/random/100x100?product=${itemIndex}`,
         price: (Math.random() * 1000 + 500).toFixed(2),
         size: ['S', 'M', 'L', 'XL'][Math.floor(Math.random() * 4)],
         color: ['Black', 'White', 'Red', 'Blue'][Math.floor(Math.random() * 4)]
       })),
       shippingAddress: {
-        address: `${Math.floor(Math.random() * 1000) + 1} Main St, City ${index % 5 + 1}`,
+        street: `${Math.floor(Math.random() * 1000) + 1} Main St, City ${index % 5 + 1}`,
         city: `City ${index % 5 + 1}`,
-        postalCode: `${10000 + index * 10}`,
+        state: `Region ${index % 3 + 1}`,
+        zipCode: `${10000 + index * 10}`,
         country: 'Philippines'
       },
       paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-      paymentResult: {
-        id: `PAY${400000 + index}`,
-        status: 'completed',
-        updateTime: new Date(Date.now() - Math.random() * 10000000).toISOString(),
-        email: `customer${index % 10 + 1}@example.com`
-      },
-      taxPrice: (Math.random() * 100 + 10).toFixed(2),
-      shippingPrice: (Math.random() * 50 + 25).toFixed(2),
-      totalPrice: (Math.random() * 2000 + 500).toFixed(2),
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      isPaid: Math.random() > 0.3,
-      paidAt: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 10000000).toISOString() : null,
-      isDelivered: Math.random() > 0.6,
-      deliveredAt: Math.random() > 0.6 ? new Date(Date.now() - Math.random() * 5000000).toISOString() : null,
+      paymentInfo: Math.random() > 0.3 ? {
+        accountName: `Account ${index % 5 + 1}`,
+        accountNumber: `ACC${500000 + index}`,
+        referenceNumber: `REF${600000 + index}`,
+        dateCreated: new Date(Date.now() - Math.random() * 10000000).toISOString(),
+        verificationStatus: ['pending', 'verified', 'rejected'][Math.floor(Math.random() * 3)]
+      } : null,
+      paymentStatus: ['pending', 'completed', 'failed'][Math.floor(Math.random() * 3)],
+      orderStatus: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'][Math.floor(Math.random() * 5)],
+      totalAmount: (Math.random() * 2000 + 500).toFixed(2),
       createdAt: new Date(Date.now() - Math.random() * 15000000).toISOString(),
       updatedAt: new Date(Date.now() - Math.random() * 1000000).toISOString(),
     }));
@@ -477,18 +701,18 @@ const Orders = () => {
                       </TableCell>
                       <TableCell>{order.user.name}</TableCell>
                       <TableCell>{formatDate(order.createdAt)}</TableCell>
-                      <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
+                      <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
                       <TableCell>
                         <Chip 
-                          label={order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'Unknown'} 
-                          color={getStatusColor(order.status)}
+                          label={order.orderStatus ? order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1) : 'Unknown'} 
+                          color={getStatusColor(order.orderStatus)}
                           size="small"
                         />
                       </TableCell>
                       <TableCell>
                         <Chip 
-                          label={order.isPaid ? 'Paid' : 'Not Paid'} 
-                          color={order.isPaid ? 'success' : 'error'}
+                          label={order.paymentStatus ? order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1) : 'Pending'} 
+                          color={getPaymentStatusColor(order.paymentStatus)}
                           size="small"
                           variant="outlined"
                         />
@@ -546,13 +770,26 @@ const Orders = () => {
                 Order Details - {selectedOrder._id}
               </Typography>
               <Chip 
-                label={selectedOrder.status ? selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1) : 'Unknown'} 
-                color={getStatusColor(selectedOrder.status)}
+                label={selectedOrder.orderStatus ? selectedOrder.orderStatus.charAt(0).toUpperCase() + selectedOrder.orderStatus.slice(1) : 'Unknown'} 
+                color={getStatusColor(selectedOrder.orderStatus)}
                 size="small"
               />
             </Box>
           </DialogTitle>
           <DialogContent dividers>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              indicatorColor="primary"
+              textColor="primary"
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+            >
+              <Tab label="Order Info" />
+              <Tab label="Payment Details" />
+              <Tab label="Delivery Info" />
+            </Tabs>
+
+            {activeTab === 0 && (
             <Grid container spacing={3}>
               {/* Order Information */}
               <Grid item xs={12}>
@@ -577,7 +814,7 @@ const Orders = () => {
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
                     <Typography variant="body2">
-                      <strong>Payment Status:</strong> {selectedOrder.isPaid ? `Paid on ${formatDate(selectedOrder.paidAt)}` : 'Not Paid'}
+                      <strong>Payment Status:</strong> {selectedOrder.paymentStatus ? selectedOrder.paymentStatus.charAt(0).toUpperCase() + selectedOrder.paymentStatus.slice(1) : 'Pending'}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
@@ -587,12 +824,12 @@ const Orders = () => {
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
                     <Typography variant="body2">
-                      <strong>Status:</strong> {selectedOrder.status || 'Processing'}
+                      <strong>Status:</strong> {selectedOrder.orderStatus ? selectedOrder.orderStatus.charAt(0).toUpperCase() + selectedOrder.orderStatus.slice(1) : 'Processing'}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
                     <Typography variant="body2">
-                      <strong>Total:</strong> ${selectedOrder.totalPrice ? selectedOrder.totalPrice.toFixed(2) : '0.00'}
+                      <strong>Total:</strong> {formatCurrency(selectedOrder.totalAmount)}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -624,7 +861,7 @@ const Orders = () => {
                 {selectedOrder.shippingAddress ? (
                   <Stack spacing={1}>
                     <Typography variant="body2">
-                      <strong>Address:</strong> {selectedOrder.shippingAddress.address || 'N/A'}
+                      <strong>Address:</strong> {selectedOrder.shippingAddress.street || 'N/A'}
                     </Typography>
                     <Typography variant="body2">
                       <strong>City:</strong> {selectedOrder.shippingAddress.city || 'N/A'}
@@ -646,33 +883,12 @@ const Orders = () => {
                 )}
               </Grid>
 
-              {/* Payment Details */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Payment Details
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Subtotal: {formatCurrency(Number(selectedOrder.totalPrice) - Number(selectedOrder.taxPrice) - Number(selectedOrder.shippingPrice))}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Shipping: {formatCurrency(selectedOrder.shippingPrice)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tax: {formatCurrency(selectedOrder.taxPrice)}
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ mt: 1 }}>
-                    Total: {formatCurrency(selectedOrder.totalPrice)}
-                  </Typography>
-                </Box>
-              </Grid>
-
               {/* Order Items */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" gutterBottom>
                   Order Items
                 </Typography>
-                {selectedOrder.orderItems && selectedOrder.orderItems.length > 0 ? (
+                {selectedOrder.items && selectedOrder.items.length > 0 ? (
                   <TableContainer component={Paper} variant="outlined">
                     <Table size="small">
                       <TableHead>
@@ -687,88 +903,24 @@ const Orders = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {selectedOrder.orderItems.map((item) => (
-                          <TableRow key={item._id || `${item.product}-${item.size}-${item.color}`}>
+                        {selectedOrder.items.map((item, index) => (
+                          <TableRow key={index}>
                             <TableCell>
-                              {item.image ? (
-                                <Box
-                                  component="img"
-                                  src={item.image}
-                                  alt={item.name}
-                                  sx={{ width: 50, height: 50, objectFit: 'cover' }}
-                                  onError={(e) => {
-                                    e.target.src = '/placeholder.png';
-                                  }}
-                                />
-                              ) : (
-                                <Box
-                                  component="img"
-                                  src="/placeholder.png"
-                                  alt="Placeholder"
-                                  sx={{ width: 50, height: 50, objectFit: 'cover' }}
-                                />
-                              )}
+                              <Box
+                                component="img"
+                                src="/placeholder.png"
+                                alt="Product"
+                                sx={{ width: 50, height: 50, objectFit: 'cover' }}
+                              />
                             </TableCell>
-                            <TableCell>{item.name || 'Unknown Product'}</TableCell>
+                            <TableCell>{item.product ? item.product.name || 'Product' : 'Product'}</TableCell>
                             <TableCell>{item.size || 'N/A'}</TableCell>
-                            <TableCell>
-                              {item.color ? (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Box
-                                    sx={{
-                                      width: 16,
-                                      height: 16,
-                                      bgcolor: item.color,
-                                      borderRadius: '50%',
-                                      border: '1px solid rgba(0,0,0,0.1)',
-                                    }}
-                                  />
-                                  {item.color}
-                                </Box>
-                              ) : (
-                                'N/A'
-                              )}
-                            </TableCell>
-                            <TableCell align="right">${item.price ? item.price.toFixed(2) : '0.00'}</TableCell>
-                            <TableCell align="right">{item.quantity || 0}</TableCell>
-                            <TableCell align="right">
-                              ${item.price && item.quantity ? (item.price * item.quantity).toFixed(2) : '0.00'}
-                            </TableCell>
+                            <TableCell>{item.color || 'N/A'}</TableCell>
+                            <TableCell align="right">{formatCurrency(item.price)}</TableCell>
+                            <TableCell align="right">{item.quantity}</TableCell>
+                            <TableCell align="right">{formatCurrency(item.price * item.quantity)}</TableCell>
                           </TableRow>
                         ))}
-                        <TableRow>
-                          <TableCell colSpan={5} />
-                          <TableCell align="right">
-                            <Typography variant="subtitle2">Subtotal:</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              ${selectedOrder.itemsPrice ? selectedOrder.itemsPrice.toFixed(2) : '0.00'}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell colSpan={5} />
-                          <TableCell align="right">
-                            <Typography variant="subtitle2">Shipping:</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              ${selectedOrder.shippingPrice ? selectedOrder.shippingPrice.toFixed(2) : '0.00'}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell colSpan={5} />
-                          <TableCell align="right">
-                            <Typography variant="subtitle2">Tax:</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography variant="body2">
-                              ${selectedOrder.taxPrice ? selectedOrder.taxPrice.toFixed(2) : '0.00'}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
                         <TableRow>
                           <TableCell colSpan={5} />
                           <TableCell align="right">
@@ -776,7 +928,7 @@ const Orders = () => {
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="subtitle2">
-                              ${selectedOrder.totalPrice ? selectedOrder.totalPrice.toFixed(2) : '0.00'}
+                              {formatCurrency(selectedOrder.totalAmount)}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -792,18 +944,204 @@ const Orders = () => {
                 )}
               </Grid>
             </Grid>
+            )}
+
+            {activeTab === 1 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6">Payment Information</Typography>
+                      {selectedOrder.paymentInfo && selectedOrder.paymentInfo.verificationStatus && (
+                        <Chip 
+                          label={selectedOrder.paymentInfo.verificationStatus.charAt(0).toUpperCase() + selectedOrder.paymentInfo.verificationStatus.slice(1)}
+                          color={getVerificationStatusColor(selectedOrder.paymentInfo.verificationStatus)}
+                          icon={selectedOrder.paymentInfo.verificationStatus === 'verified' ? <VerifiedIcon /> : 
+                                 selectedOrder.paymentInfo.verificationStatus === 'rejected' ? <RejectedIcon /> : null}
+                        />
+                      )}
+                    </Box>
+
+                    {selectedOrder.paymentMethod === 'bank_transfer' || selectedOrder.paymentMethod === 'paypal' ? (
+                      <>
+                        {selectedOrder.paymentInfo ? (
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2">
+                                <strong>Account Name:</strong> {selectedOrder.paymentInfo.accountName || 'N/A'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2">
+                                <strong>Account Number:</strong> {selectedOrder.paymentInfo.accountNumber || 'N/A'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2">
+                                <strong>Reference Number:</strong> {selectedOrder.paymentInfo.referenceNumber || 'N/A'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <Typography variant="body2">
+                                <strong>Payment Date:</strong> {selectedOrder.paymentInfo.dateCreated ? formatDate(selectedOrder.paymentInfo.dateCreated) : 'N/A'}
+                              </Typography>
+                            </Grid>
+                            
+                            {selectedOrder.paymentInfo.verificationStatus !== 'pending' && (
+                              <>
+                                <Grid item xs={12}>
+                                  <Divider sx={{ my: 1 }} />
+                                  <Typography variant="subtitle2">Verification Details</Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2">
+                                    <strong>Verified By:</strong> {selectedOrder.paymentInfo.verifiedBy || 'N/A'}
+                                  </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                  <Typography variant="body2">
+                                    <strong>Verified On:</strong> {selectedOrder.paymentInfo.verifiedAt ? formatDate(selectedOrder.paymentInfo.verifiedAt) : 'N/A'}
+                                  </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                  <Typography variant="body2">
+                                    <strong>Notes:</strong> {selectedOrder.paymentInfo.verificationNotes || 'No notes provided'}
+                                  </Typography>
+                                </Grid>
+                              </>
+                            )}
+                          </Grid>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No payment information provided by the customer.
+                          </Typography>
+                        )}
+                      </>
+                    ) : (
+                      <Typography variant="body2">
+                        {selectedOrder.paymentMethod === 'cash_on_delivery' 
+                          ? 'This order uses Cash on Delivery. Payment will be collected upon delivery.'
+                          : `Payment method: ${selectedOrder.paymentMethod}`
+                        }
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+            )}
+
+            {activeTab === 2 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>Delivery Information</Typography>
+                    
+                    {selectedOrder.deliveryInfo ? (
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Delivery Service:</strong> {selectedOrder.deliveryInfo.service || 'Not assigned'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Driver Name:</strong> {selectedOrder.deliveryInfo.driverName || 'Not assigned'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Contact Number:</strong> {selectedOrder.deliveryInfo.contactNumber || 'Not provided'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Tracking Number:</strong> {selectedOrder.deliveryInfo.trackingNumber || 'Not available'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="body2">
+                            <strong>Tracking Link:</strong> {
+                              selectedOrder.deliveryInfo.trackingLink ? (
+                                <a href={selectedOrder.deliveryInfo.trackingLink} target="_blank" rel="noopener noreferrer">
+                                  {selectedOrder.deliveryInfo.trackingLink}
+                                </a>
+                              ) : 'Not available'
+                            }
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Estimated Delivery:</strong> {
+                              selectedOrder.deliveryInfo.estimatedDelivery 
+                                ? formatDate(selectedOrder.deliveryInfo.estimatedDelivery) 
+                                : 'Not specified'
+                            }
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Assigned:</strong> {
+                              selectedOrder.deliveryInfo.assignedAt 
+                                ? formatDate(selectedOrder.deliveryInfo.assignedAt) 
+                                : 'Not assigned'
+                            }
+                          </Typography>
+                        </Grid>
+                        {selectedOrder.deliveryInfo.notes && (
+                          <Grid item xs={12}>
+                            <Typography variant="body2">
+                              <strong>Notes:</strong> {selectedOrder.deliveryInfo.notes}
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No delivery information has been assigned to this order yet.
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+            )}
           </DialogContent>
           <DialogActions>
-            <Button 
-              variant="outlined" 
-              color="primary"
-              onClick={() => {
-                handleCloseViewDialog();
-                handleOpenStatusDialog(selectedOrder);
-              }}
-            >
-              Update Status
-            </Button>
+            {activeTab === 0 && (
+              <Button 
+                variant="outlined" 
+                color="primary"
+                onClick={() => {
+                  handleCloseViewDialog();
+                  handleOpenStatusDialog(selectedOrder);
+                }}
+              >
+                Update Status
+              </Button>
+            )}
+            {activeTab === 1 && selectedOrder.paymentMethod !== 'cash_on_delivery' && (
+              <Button 
+                variant="outlined" 
+                color="primary"
+                startIcon={<PaymentIcon />}
+                onClick={handleOpenPaymentVerification}
+              >
+                Verify Payment
+              </Button>
+            )}
+            {activeTab === 2 && (
+              <Button 
+                variant="outlined" 
+                color="primary"
+                startIcon={<DeliveryIcon />}
+                onClick={handleOpenDeliveryDialog}
+              >
+                {selectedOrder.deliveryInfo ? 'Update Delivery Info' : 'Add Delivery Info'}
+              </Button>
+            )}
             <Button onClick={handleCloseViewDialog}>Close</Button>
           </DialogActions>
         </Dialog>
@@ -850,6 +1188,226 @@ const Orders = () => {
               disabled={statusLoading || statusUpdateSuccess || newStatus === selectedOrder.status}
             >
               {statusLoading ? <CircularProgress size={24} /> : 'Update'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* Payment Verification Dialog */}
+      {selectedOrder && (
+        <Dialog
+          open={paymentVerificationDialogOpen}
+          onClose={handleClosePaymentVerification}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Verify Payment</DialogTitle>
+          <DialogContent>
+            {verificationSuccess ? (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                Payment verification updated successfully!
+              </Alert>
+            ) : (
+              <Box sx={{ mt: 1 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Payment Information
+                    </Typography>
+                    {selectedOrder.paymentInfo ? (
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Account Name:</strong> {selectedOrder.paymentInfo.accountName || 'N/A'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Account Number:</strong> {selectedOrder.paymentInfo.accountNumber || 'N/A'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Reference Number:</strong> {selectedOrder.paymentInfo.referenceNumber || 'N/A'}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            <strong>Payment Date:</strong> {selectedOrder.paymentInfo.dateCreated ? formatDate(selectedOrder.paymentInfo.dateCreated) : 'N/A'}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No payment information provided by the customer.
+                      </Typography>
+                    )}
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="subtitle2" gutterBottom>
+                      Verification
+                    </Typography>
+                    
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel id="verification-status-label">Verification Status</InputLabel>
+                      <Select
+                        labelId="verification-status-label"
+                        value={verificationStatus}
+                        label="Verification Status"
+                        onChange={handleVerificationStatusChange}
+                      >
+                        <MenuItem value="verified">Verified</MenuItem>
+                        <MenuItem value="rejected">Rejected</MenuItem>
+                        <MenuItem value="pending">Pending</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    <TextField
+                      fullWidth
+                      label="Verification Notes"
+                      multiline
+                      rows={3}
+                      value={verificationNotes}
+                      onChange={handleVerificationNotesChange}
+                      placeholder="Enter any notes about the payment verification"
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePaymentVerification}>Cancel</Button>
+            <Button 
+              onClick={handleVerifyPayment} 
+              variant="contained" 
+              color="primary"
+              disabled={verificationLoading || verificationSuccess}
+            >
+              {verificationLoading ? <CircularProgress size={24} /> : 'Update Verification'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* Delivery Information Dialog */}
+      {selectedOrder && (
+        <Dialog
+          open={deliveryDialogOpen}
+          onClose={handleCloseDeliveryDialog}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            {selectedOrder.deliveryInfo ? 'Update Delivery Information' : 'Add Delivery Information'}
+          </DialogTitle>
+          <DialogContent>
+            {deliverySuccess ? (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                Delivery information updated successfully!
+              </Alert>
+            ) : (
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth required>
+                    <InputLabel id="delivery-service-label">Delivery Service</InputLabel>
+                    <Select
+                      labelId="delivery-service-label"
+                      name="service"
+                      value={deliveryInfo.service}
+                      label="Delivery Service"
+                      onChange={handleDeliveryInfoChange}
+                    >
+                      {deliveryServices.map(service => (
+                        <MenuItem key={service} value={service}>{service}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Driver Name"
+                    name="driverName"
+                    value={deliveryInfo.driverName}
+                    onChange={handleDeliveryInfoChange}
+                    placeholder="Enter driver's name"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Contact Number"
+                    name="contactNumber"
+                    value={deliveryInfo.contactNumber}
+                    onChange={handleDeliveryInfoChange}
+                    placeholder="Enter contact number"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Tracking Number"
+                    name="trackingNumber"
+                    value={deliveryInfo.trackingNumber}
+                    onChange={handleDeliveryInfoChange}
+                    placeholder="Enter tracking number"
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Tracking Link"
+                    name="trackingLink"
+                    value={deliveryInfo.trackingLink}
+                    onChange={handleDeliveryInfoChange}
+                    placeholder="Enter tracking link URL"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Estimated Delivery Date"
+                    name="estimatedDelivery"
+                    type="date"
+                    value={deliveryInfo.estimatedDelivery}
+                    onChange={handleDeliveryInfoChange}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Delivery Notes"
+                    name="notes"
+                    multiline
+                    rows={3}
+                    value={deliveryInfo.notes}
+                    onChange={handleDeliveryInfoChange}
+                    placeholder="Any additional notes about this delivery"
+                  />
+                </Grid>
+              </Grid>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDeliveryDialog}>Cancel</Button>
+            <Button 
+              onClick={handleUpdateDelivery} 
+              variant="contained" 
+              color="primary"
+              disabled={deliveryLoading || deliverySuccess || !deliveryInfo.service || !deliveryInfo.trackingNumber}
+            >
+              {deliveryLoading ? <CircularProgress size={24} /> : 'Save Delivery Info'}
             </Button>
           </DialogActions>
         </Dialog>

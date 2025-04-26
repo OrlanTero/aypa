@@ -49,6 +49,8 @@ export const ORDER_ENDPOINTS = {
   DETAILS: (id) => `${API_BASE_URL}/orders/${id}`,
   CREATE: `${API_BASE_URL}/orders`,
   UPDATE_STATUS: (id) => `${API_BASE_URL}/orders/${id}/status`,
+  VERIFY_PAYMENT: (id) => `${API_BASE_URL}/orders/${id}/verify-payment`,
+  UPDATE_DELIVERY: (id) => `${API_BASE_URL}/orders/${id}/delivery`,
   CANCEL: (id) => `${API_BASE_URL}/orders/${id}/cancel`,
   TRACK: (id) => `${API_BASE_URL}/orders/${id}/track`,
 };

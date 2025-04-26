@@ -58,6 +58,23 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     enum: ['credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery']
   },
+  paymentInfo: {
+    accountName: String,
+    accountNumber: String,
+    referenceNumber: String,
+    dateCreated: Date,
+    verifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    verifiedAt: Date,
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'rejected'],
+      default: 'pending'
+    },
+    verificationNotes: String
+  },
   paymentStatus: {
     type: String,
     enum: ['pending', 'completed', 'failed', 'refunded'],
@@ -68,7 +85,23 @@ const OrderSchema = new mongoose.Schema({
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
-  trackingNumber: String,
+  deliveryInfo: {
+    service: {
+      type: String,
+      enum: ['Grab', 'LBC', 'LalaMove', 'JRS', 'J&T', 'Other'],
+    },
+    driverName: String,
+    contactNumber: String,
+    trackingNumber: String,
+    trackingLink: String,
+    estimatedDelivery: Date,
+    notes: String,
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    assignedAt: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
