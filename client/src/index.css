@@ -9,7 +9,7 @@ body {
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: #FFFFFF;
 }
 
 #root {
@@ -29,11 +29,11 @@ a {
 }
 
 .text-primary {
-  color: #1976d2;
+  color: #0599DF;
 }
 
 .text-secondary {
-  color: #dc004e;
+  color: #EC048D;
 }
 
 .text-success {
@@ -41,7 +41,7 @@ a {
 }
 
 .text-warning {
-  color: #ff9800;
+  color: #EC048D;
 }
 
 .text-error {

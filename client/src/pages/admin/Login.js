@@ -23,13 +23,13 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
+      main: '#1C2E4A',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#52677D',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#D1CFC9',
     },
   },
 });

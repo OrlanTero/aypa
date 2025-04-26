@@ -36,6 +36,7 @@ import {
 import { formatCurrency } from '../utils/formatters';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import logo from '../assets/logo.png';
+import logoAnother from '../assets/logo.jpg';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -149,77 +150,20 @@ const Home = () => {
       <Box
         sx={{
           position: 'relative',
-          bgcolor: theme.palette.primary.main,
+          bgcolor: 'white',
           color: 'white',
+          width: '90%',
+          marginLeft: '5%',
           py: { xs: 6, sm: 10, md: 12 },
-          mb: { xs: 4, sm: 6 }
+          mb: { xs: 4, sm: 6 },
+          backgroundImage: `url(${logoAnother})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          height: 'calc(100vh - 64px)'
         }}
       >
-        <Container maxWidth="lg">
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={6} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-              <Typography 
-                variant="h2" 
-                component="h1" 
-                gutterBottom
-                sx={{ 
-                  fontWeight: 700,
-                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3.5rem' },
-                  lineHeight: 1.2
-                }}
-              >
-                Welcome to AYPA E-commerce
-              </Typography>
-              <Typography 
-                variant="h5" 
-                paragraph
-                sx={{ 
-                  mb: 3,
-                  fontSize: { xs: '1rem', sm: '1.25rem' },
-                  fontWeight: 400,
-                  maxWidth: { md: '80%' }
-                }}
-              >
-                Discover our latest collection of premium products at affordable prices.
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                color="secondary"
-                component={RouterLink}
-                to="/products"
-                sx={{ 
-                  px: 4, 
-                  py: 1.5,
-                  borderRadius: 2,
-                  fontSize: { xs: '0.9rem', sm: '1rem' }
-                }}
-              >
-                Shop Now
-              </Button>
-            </Grid>
-            <Grid 
-              item 
-              xs={12} 
-              md={6} 
-              sx={{ 
-                display: { xs: 'none', sm: 'block' },
-                textAlign: 'center'
-              }}
-            >
-              <Box 
-                component="img" 
-                src={logo} 
-                alt="AYPA Logo"
-                sx={{
-                  width: { sm: '60%', md: '70%' },
-                  maxWidth: 350,
-                  filter: 'drop-shadow(0px 5px 15px rgba(0,0,0,0.2))'
-                }}
-              />
-            </Grid>
-          </Grid>
-        </Container>
+        
       </Box>
 
       {/* Features Section */}

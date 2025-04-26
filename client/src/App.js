@@ -42,31 +42,31 @@ import CustomerLayout from './components/layout/CustomerLayout';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#11aaea', // Light Blue
-      light: '#53c4ef',
-      dark: '#0c79a4',
-      contrastText: '#ffffff',
+      main: '#0599DF', // Azure (was Dark blue)
+      light: '#82D0F1', // Sky Blue
+      dark: '#24292A', // Almost Black
+      contrastText: '#FFFFFF', // White
     },
     secondary: {
-      main: '#e4128a', // Pink
-      light: '#ec52a9',
-      dark: '#a00d61',
-      contrastText: '#ffffff',
+      main: '#EC048D', // Pink
+      light: '#82D0F1', // Sky Blue
+      dark: '#24292A', // Almost Black
+      contrastText: '#FFFFFF', // White
     },
     accent: {
-      main: '#f8f023', // Yellow
-      light: '#f9f45c',
-      dark: '#d6cf1e',
-      contrastText: '#29292a',
+      main: '#82D0F1', // Sky Blue
+      light: '#FFFFFF', // White
+      dark: '#0599DF', // Azure
+      contrastText: '#24292A', // Almost Black
     },
     background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-      dark: '#29292a', // Dark Grey/Almost Black
+      default: '#FFFFFF', // White (was #D1CFC9)
+      paper: '#FFFFFF', // White (was #D1CFC9)
+      dark: '#24292A', // Almost Black (was #0F1A2B)
     },
     text: {
-      primary: '#29292a', // Dark Grey/Almost Black
-      secondary: '#5a5a5b',
+      primary: '#24292A', // Almost Black (was Darkest blue)
+      secondary: '#0599DF', // Azure (was #1C2E4A)
     },
     error: {
       main: '#f44336',
@@ -75,10 +75,10 @@ const theme = createTheme({
       main: '#4CAF50',
     },
     info: {
-      main: '#11aaea', // Same as primary
+      main: '#0599DF', // Azure (was same as primary)
     },
     warning: {
-      main: '#f8f023', // Same as accent
+      main: '#EC048D', // Pink (was Same as accent)
     },
   },
   typography: {
@@ -121,10 +121,10 @@ const theme = createTheme({
           },
         },
         containedPrimary: {
-          background: 'linear-gradient(45deg, #11aaea 30%, #53c4ef 90%)',
+          background: 'linear-gradient(45deg, #0599DF 30%, #82D0F1 90%)',
         },
         containedSecondary: {
-          background: 'linear-gradient(45deg, #e4128a 30%, #ec52a9 90%)',
+          background: 'linear-gradient(45deg, #EC048D 30%, #82D0F1 90%)',
         },
       },
     },
@@ -139,8 +139,8 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#29292a',
-          color: '#ffffff',
+          backgroundColor: '#24292A',
+          color: '#FFFFFF',
         },
       },
     },

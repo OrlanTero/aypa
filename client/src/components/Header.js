@@ -469,7 +469,7 @@ const Header = () => {
           sx: {
             width: 280,
             bgcolor: theme.palette.background.dark,
-            color: 'white'
+            color: theme.palette.primary.contrastText
           }
         }}
       >
