@@ -83,13 +83,15 @@ router.post('/', auth, async (req, res) => {
     totalAmount,
     shippingAddress,
     paymentMethod,
-    paymentInfo
+    paymentInfo,
+    deliveryFee
   } = req.body;
 
   // Debug logging
   console.log('==== ORDER CREATE REQUEST ====');
   console.log('Payment Method:', paymentMethod);
   console.log('Payment Info Present:', !!paymentInfo);
+  console.log('Delivery Fee:', deliveryFee);
   if (paymentInfo) {
     console.log('Payment Info:', JSON.stringify(paymentInfo));
   }
@@ -122,6 +124,7 @@ router.post('/', auth, async (req, res) => {
       user: req.user.id,
       items,
       totalAmount,
+      deliveryFee,
       shippingAddress,
       paymentMethod,
       paymentStatus: 'pending',

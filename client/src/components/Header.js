@@ -37,6 +37,7 @@ import CartMenu from './CartMenu';
 import SearchBar from './SearchBar';
 import { getUserAvatarUrl } from '../utils/imageUtils';
 import defaultUserAvatar from '../assets/default-avatar.png';
+import logo from '../assets/logo.png';
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
@@ -115,9 +116,9 @@ const Header = () => {
   return (
     <AppBar 
       position="sticky" 
-      elevation={0}
+      elevation={1}
       sx={{
-        borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+        background: `linear-gradient(to right, ${theme.palette.background.dark}, ${alpha(theme.palette.primary.dark, 0.85)})`,
       }}
     >
       <Container maxWidth="lg">
@@ -134,24 +135,43 @@ const Header = () => {
             <MenuIcon />
           </IconButton>
           
-          {/* Logo */}
-          <Typography
-            variant="h5"
-            noWrap
-            component={RouterLink}
+          {/* Logo - Improved with better sizing and positioning */}
+          <Box 
+            component={RouterLink} 
             to="/"
             sx={{
-              mr: 3,
               display: 'flex',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: 700,
-              letterSpacing: '.2rem',
-              color: theme.palette.accent.main,
+              alignItems: 'center',
+              mr: { xs: 'auto', md: 3 },
+              ml: { xs: 'auto', md: 0 },
               textDecoration: 'none',
             }}
           >
-            AYPA
-          </Typography>
+            <Box 
+              component="img" 
+              src={logo} 
+              alt="AYPA Logo"
+              sx={{ 
+                height: { xs: 45, md: 50 },
+                mr: 1.5,
+                filter: 'drop-shadow(0px 2px 3px rgba(0,0,0,0.2))'
+              }}
+            />
+            <Typography
+              variant="h5"
+              noWrap
+              sx={{
+                fontFamily: 'Poppins, sans-serif',
+                fontWeight: 700,
+                letterSpacing: '.2rem',
+                color: theme.palette.accent.main,
+                display: { xs: 'none', sm: 'block' },
+                textShadow: '0px 2px 4px rgba(0,0,0,0.2)'
+              }}
+            >
+              AYPA
+            </Typography>
+          </Box>
 
           {/* Desktop navigation */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
@@ -165,9 +185,24 @@ const Header = () => {
                   color: 'white', 
                   display: 'flex', 
                   mx: 1.5,
+                  fontWeight: 500,
+                  position: 'relative',
                   '&:hover': {
                     color: theme.palette.accent.main,
                     backgroundColor: 'transparent'
+                  },
+                  '&:hover::after': {
+                    width: '70%'
+                  },
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 5,
+                    left: '15%',
+                    width: 0,
+                    height: 2,
+                    bgcolor: theme.palette.accent.main,
+                    transition: 'width 0.3s ease'
                   }
                 }}
               >
@@ -216,7 +251,7 @@ const Header = () => {
           )}
 
           {/* Action Icons */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: { xs: 'auto', md: 0 } }}>
             {/* Search Icon - visible when searchOpen is false */}
             {!searchOpen && (
               <IconButton
@@ -225,8 +260,10 @@ const Header = () => {
                 onClick={toggleSearch}
                 sx={{ 
                   mx: 0.5,
+                  transition: 'all 0.2s ease',
                   '&:hover': {
                     color: theme.palette.accent.main,
+                    transform: 'scale(1.1)',
                     backgroundColor: 'transparent'
                   }
                 }}
@@ -242,110 +279,174 @@ const Header = () => {
               onClick={handleCartClick}
               sx={{ 
                 mx: 0.5,
+                transition: 'all 0.2s ease',
                 '&:hover': {
                   color: theme.palette.accent.main,
+                  transform: 'scale(1.1)',
                   backgroundColor: 'transparent'
                 }
               }}
             >
-              <Badge 
-                badgeContent={cartItemCount} 
-                color="secondary"
-                sx={{
-                  '& .MuiBadge-badge': {
-                    backgroundColor: theme.palette.secondary.main,
-                    color: 'white',
-                  }
-                }}
-              >
+              <Badge badgeContent={cartItemCount} color="secondary">
                 <CartIcon />
               </Badge>
             </IconButton>
 
-            {/* User Menu */}
+            {/* User Account - Enhanced UI */}
             {isAuthenticated ? (
               <>
                 <Tooltip title="Account settings">
-                  <IconButton
+                  <IconButton 
                     onClick={handleUserMenuOpen}
                     size="large"
-                    edge="end"
-                    aria-haspopup="true"
-                    color="inherit"
                     sx={{ 
                       ml: 0.5,
+                      transition: 'all 0.2s ease',
                       '&:hover': {
-                        color: theme.palette.accent.main,
-                        backgroundColor: 'transparent'
+                        transform: 'scale(1.1)',
                       }
                     }}
                   >
                     <Avatar 
+                      src={user?.avatar ? getUserAvatarUrl(user) : defaultUserAvatar} 
+                      alt={user?.name}
                       sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        bgcolor: theme.palette.secondary.main,
-                        color: 'white',
-                        fontWeight: 'bold'
+                        width: 36, 
+                        height: 36,
+                        border: `2px solid ${theme.palette.accent.main}`,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                       }}
-                      src={getUserAvatarUrl(user)}
-                    >
-                      {user?.name?.charAt(0) || 'U'}
-                    </Avatar>
+                    />
                   </IconButton>
                 </Tooltip>
                 <Menu
                   anchorEl={userMenuAnchor}
+                  id="account-menu"
                   open={Boolean(userMenuAnchor)}
                   onClose={handleUserMenuClose}
-                  keepMounted
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  onClick={handleUserMenuClose}
                   PaperProps={{
                     elevation: 3,
                     sx: {
+                      overflow: 'visible',
+                      filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
                       mt: 1.5,
-                      borderRadius: 2,
-                      minWidth: 180,
-                      '& .MuiMenuItem-root': {
-                        px: 2,
-                        py: 1.5
-                      }
-                    }
+                      borderRadius: 3,
+                      width: 280,
+                      '&::before': {
+                        content: '""',
+                        display: 'block',
+                        position: 'absolute',
+                        top: 0,
+                        right: 14,
+                        width: 10,
+                        height: 10,
+                        bgcolor: 'background.paper',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        zIndex: 0,
+                      },
+                    },
                   }}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  {isAdmin && (
-                    <MenuItem 
+                  <Box sx={{ pt: 2, pb: 1, px: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Avatar 
+                        src={user?.avatar ? getUserAvatarUrl(user) : defaultUserAvatar} 
+                        alt={user?.name}
+                        sx={{ 
+                          width: 50, 
+                          height: 50,
+                          mr: 2,
+                          border: `2px solid ${theme.palette.primary.main}`,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Box sx={{ overflow: 'hidden' }}>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.3 }}>
+                          {user?.name || 'User'}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {user?.email || 'email@example.com'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Button 
                       component={RouterLink} 
-                      to="/admin/dashboard"
-                      onClick={handleUserMenuClose}
+                      to="/profile" 
+                      fullWidth 
+                      variant="contained" 
+                      color="primary"
+                      size="small"
+                      sx={{ 
+                        mt: 1, 
+                        mb: 0.5,
+                        py: 0.7,
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        boxShadow: 1
+                      }}
                     >
-                      <DashboardIcon fontSize="small" sx={{ mr: 1.5, color: theme.palette.primary.main }} />
+                      Manage Your Account
+                    </Button>
+                  </Box>
+                  <Divider />
+                  
+                  <MenuItem component={RouterLink} to="/profile" sx={{ py: 1.5 }}>
+                    <PersonIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                    My Profile
+                  </MenuItem>
+                  
+                  <MenuItem component={RouterLink} to="/orders" sx={{ py: 1.5 }}>
+                    <ShoppingBagIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                    My Orders
+                  </MenuItem>
+                  
+                  {isAdmin && (
+                    <MenuItem component={RouterLink} to="/admin" sx={{ py: 1.5 }}>
+                      <DashboardIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
                       Admin Dashboard
                     </MenuItem>
                   )}
+                  
+                  <Divider />
+                  
                   <MenuItem 
-                    component={RouterLink}
-                    to={isAdmin ? "/admin/profile" : "/profile"}
-                    onClick={handleUserMenuClose}
+                    onClick={handleLogout} 
+                    sx={{ 
+                      color: theme.palette.error.main, 
+                      py: 1.5,
+                      '&:hover': {
+                        bgcolor: alpha(theme.palette.error.main, 0.1)
+                      }
+                    }}
                   >
-                    <PersonIcon fontSize="small" sx={{ mr: 1.5, color: theme.palette.primary.main }} />
-                    My Account
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+                      Logout
+                    </Box>
                   </MenuItem>
-                  <Divider sx={{ my: 1 }} />
-                  <MenuItem onClick={handleLogout}>Logout</MenuItem>
                 </Menu>
               </>
             ) : (
               <Button
+                variant="outlined"
+                size="small"
                 component={RouterLink}
                 to="/login"
-                variant="outlined"
-                color="inherit"
                 sx={{ 
                   ml: 1.5,
-                  borderColor: theme.palette.accent.main,
                   color: theme.palette.accent.main,
+                  borderColor: theme.palette.accent.main,
                   '&:hover': {
                     borderColor: theme.palette.accent.light,
                     backgroundColor: alpha(theme.palette.accent.main, 0.1)
@@ -358,132 +459,182 @@ const Header = () => {
           </Box>
         </Toolbar>
       </Container>
-
-      {/* Mobile Menu Drawer */}
+      
+      {/* Mobile Drawer - Enhanced with better logo */}
       <Drawer
         anchor="left"
         open={mobileMenuOpen}
         onClose={toggleMobileMenu}
         PaperProps={{
           sx: {
-            width: 270,
-            backgroundColor: theme.palette.background.dark,
+            width: 280,
+            bgcolor: theme.palette.background.dark,
             color: 'white'
           }
         }}
       >
-        <Box
-          sx={{ width: '100%' }}
-          role="presentation"
-        >
-          <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6" component="div" sx={{ color: theme.palette.accent.main, fontWeight: 700 }}>
-              AYPA Shop
+        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box 
+              component="img" 
+              src={logo} 
+              alt="AYPA Logo"
+              sx={{ 
+                height: 42, 
+                mr: 1.5,
+                filter: 'drop-shadow(0px 2px 3px rgba(0,0,0,0.2))'
+              }}
+            />
+            <Typography variant="h6" fontWeight={700} color={theme.palette.accent.main}>
+              AYPA
             </Typography>
-            <IconButton onClick={toggleMobileMenu} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
           </Box>
-          <Divider sx={{ borderColor: alpha(theme.palette.common.white, 0.15) }} />
-          <Box sx={{ py: 1.5 }}>
-            {navItems.map((item) => (
-              <MenuItem
-                key={item.label}
-                component={RouterLink}
-                to={item.path}
-                onClick={toggleMobileMenu}
+          <IconButton 
+            color="inherit" 
+            onClick={toggleMobileMenu}
+            sx={{ color: 'white' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        
+        <Divider sx={{ borderColor: alpha('#fff', 0.1) }} />
+        
+        {isAuthenticated && (
+          <Box sx={{ p: 2.5, backgroundColor: alpha(theme.palette.primary.main, 0.1) }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Avatar 
+                src={user?.avatar ? getUserAvatarUrl(user) : defaultUserAvatar} 
+                alt={user?.name}
                 sx={{ 
-                  py: 1.5,
-                  px: 2.5,
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.common.white, 0.1)
-                  }
+                  width: 50, 
+                  height: 50,
+                  mr: 2,
+                  border: `2px solid ${theme.palette.accent.main}`,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
                 }}
-              >
-                <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
-                  {React.cloneElement(item.icon, { sx: { mr: 2, color: theme.palette.accent.main } })}
-                  {item.label}
-                </Box>
-              </MenuItem>
-            ))}
-          </Box>
-          <Divider sx={{ borderColor: alpha(theme.palette.common.white, 0.15) }} />
-          {isAuthenticated ? (
-            <Box>
-              <MenuItem 
-                sx={{ 
-                  py: 1.5,
-                  px: 2.5,
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.common.white, 0.1)
-                  }
-                }}
-              >
-                <PersonIcon sx={{ mr: 2, color: theme.palette.accent.main }} />
-                My Account
-              </MenuItem>
-              {isAdmin && (
-                <MenuItem 
-                  component={RouterLink} 
-                  to="/admin/dashboard"
-                  onClick={toggleMobileMenu}
+              />
+              <Box sx={{ overflow: 'hidden' }}>
+                <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.3 }}>
+                  {user?.name || 'User'}
+                </Typography>
+                <Typography 
+                  variant="body2" 
                   sx={{ 
-                    py: 1.5,
-                    px: 2.5,
-                    '&:hover': {
-                      backgroundColor: alpha(theme.palette.common.white, 0.1)
-                    }
+                    opacity: 0.7,
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <DashboardIcon sx={{ mr: 2, color: theme.palette.accent.main }} />
-                  Admin Dashboard
-                </MenuItem>
-              )}
-              <MenuItem 
-                onClick={handleLogout}
+                  {user?.email || 'email@example.com'}
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Button
+              component={RouterLink}
+              to="/profile"
+              fullWidth
+              variant="outlined"
+              size="small"
+              sx={{ 
+                borderColor: alpha('#fff', 0.3),
+                color: 'white',
+                mb: 1,
+                '&:hover': {
+                  borderColor: theme.palette.accent.main,
+                  color: theme.palette.accent.main
+                }
+              }}
+              onClick={toggleMobileMenu}
+            >
+              Manage Account
+            </Button>
+          </Box>
+        )}
+        
+        <Box sx={{ p: 2, mt: isAuthenticated ? 0 : 1 }}>
+          {navItems.map((item) => (
+            <Button
+              key={item.label}
+              component={RouterLink}
+              to={item.path}
+              startIcon={item.icon}
+              fullWidth
+              sx={{ 
+                color: 'white', 
+                justifyContent: 'flex-start',
+                py: 1.5,
+                mb: 1,
+                borderRadius: 2,
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.primary.main, 0.2)
+                }
+              }}
+              onClick={toggleMobileMenu}
+            >
+              {item.label}
+            </Button>
+          ))}
+          
+          {!isAuthenticated && (
+            <Button
+              variant="contained"
+              fullWidth
+              component={RouterLink}
+              to="/login"
+              sx={{ 
+                mt: 2,
+                bgcolor: theme.palette.accent.main,
+                color: theme.palette.accent.contrastText,
+                '&:hover': {
+                  bgcolor: theme.palette.accent.dark
+                }
+              }}
+              onClick={toggleMobileMenu}
+            >
+              Login / Register
+            </Button>
+          )}
+        </Box>
+        
+        {isAuthenticated && (
+          <>
+            <Divider sx={{ borderColor: alpha('#fff', 0.1), mt: 'auto' }} />
+            <Box sx={{ p: 2 }}>
+              <Button
+                fullWidth
+                variant="text"
+                onClick={() => {
+                  handleLogout();
+                  toggleMobileMenu();
+                }}
                 sx={{ 
+                  color: theme.palette.error.main, 
+                  justifyContent: 'center',
                   py: 1.5,
-                  px: 2.5,
+                  mb: 1,
+                  borderRadius: 2,
                   '&:hover': {
-                    backgroundColor: alpha(theme.palette.common.white, 0.1)
+                    bgcolor: alpha(theme.palette.error.main, 0.1)
                   }
                 }}
               >
                 Logout
-              </MenuItem>
-            </Box>
-          ) : (
-            <Box sx={{ p: 2.5 }}>
-              <Button
-                component={RouterLink}
-                to="/login"
-                variant="outlined"
-                fullWidth
-                onClick={toggleMobileMenu}
-                sx={{ 
-                  color: theme.palette.accent.main,
-                  borderColor: theme.palette.accent.main,
-                  '&:hover': {
-                    borderColor: theme.palette.accent.light,
-                    backgroundColor: alpha(theme.palette.accent.main, 0.1)
-                  }
-                }}
-              >
-                Login
               </Button>
             </Box>
-          )}
-        </Box>
+          </>
+        )}
       </Drawer>
-
-      {/* Cart Menu Component */}
-      <CartMenu
-        anchorEl={cartMenuAnchor}
-        open={Boolean(cartMenuAnchor)}
-        onClose={handleCartClose}
+      
+      {/* Cart Menu */}
+      <CartMenu 
+        anchorEl={cartMenuAnchor} 
+        open={Boolean(cartMenuAnchor)} 
+        onClose={handleCartClose} 
       />
-
-      {/* Search Overlay - can be added if needed */}
     </AppBar>
   );
 };

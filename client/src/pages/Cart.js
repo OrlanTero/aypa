@@ -80,15 +80,27 @@ const Cart = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pt: 2, pb: 8 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="lg" sx={{ pt: { xs: 1, sm: 2 }, pb: { xs: 4, sm: 8 } }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+          fontWeight: 600
+        }}
+      >
         Your Cart
       </Typography>
 
       {cart.items.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', mt: 4 }}>
-          <CartIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
+        <Paper sx={{ p: { xs: 3, sm: 4 }, textAlign: 'center', mt: { xs: 2, sm: 4 } }}>
+          <CartIcon sx={{ fontSize: { xs: 40, sm: 60 }, color: 'text.secondary', mb: 2 }} />
+          <Typography 
+            variant="h5" 
+            gutterBottom
+            sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+          >
             Your cart is empty
           </Typography>
           <Typography color="text.secondary" paragraph>
@@ -104,10 +116,17 @@ const Cart = () => {
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 2, md: 4 }}>
           <Grid item xs={12} md={8}>
-            <Paper sx={{ p: { xs: 2, md: 3 } }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
+            <Paper sx={{ p: { xs: 1.5, sm: 3 } }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  px: { xs: 1, sm: 0 },
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
                 Cart Items ({cart.items.reduce((total, item) => total + item.quantity, 0)})
               </Typography>
               
@@ -117,30 +136,66 @@ const Cart = () => {
                   sx={{ 
                     display: 'flex', 
                     mb: 2, 
-                    flexDirection: { xs: 'column', sm: 'row' } 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    overflow: 'hidden'
                   }}
                 >
-                  <CardMedia
-                    component="img"
-                    sx={{ 
-                      width: { xs: '100%', sm: 150 }, 
-                      height: { xs: 200, sm: 150 }, 
-                      objectFit: 'cover' 
+                  <Box
+                    sx={{
+                      width: { xs: '100%', sm: 150 },
+                      height: { xs: 140, sm: 150 },
+                      position: 'relative'
                     }}
-                    src={item.product?.imageUrls?.[0] || item.product?.imageUrl || defaultProductImage}
-                    alt={item.product?.name}
-                  />
-                  <CardContent sx={{ flex: '1 0 auto', p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="h6" component="div">
+                  >
+                    <CardMedia
+                      component="img"
+                      sx={{ 
+                        width: '100%', 
+                        height: '100%',
+                        objectFit: 'contain',
+                        p: 1,
+                        backgroundColor: 'background.paper'
+                      }}
+                      src={item.product?.imageUrls?.[0] || item.product?.imageUrl || defaultProductImage}
+                      alt={item.product?.name}
+                    />
+                  </Box>
+                  <CardContent 
+                    sx={{ 
+                      flex: '1 0 auto', 
+                      p: { xs: 1.5, sm: 2 },
+                      width: { xs: '100%', sm: 'auto' }
+                    }}
+                  >
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mb: { xs: 1, sm: 0 }
+                      }}
+                    >
+                      <Typography 
+                        variant="h6" 
+                        component="div"
+                        sx={{ 
+                          fontSize: { xs: '1rem', sm: '1.25rem' },
+                          mb: { xs: 0.5, sm: 0 }
+                        }}
+                      >
                         {item.product?.name}
                       </Typography>
-                      <Typography variant="h6" component="div">
+                      <Typography 
+                        variant="h6" 
+                        component="div"
+                        sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                      >
                         {formatCurrency(item.price * item.quantity)}
                       </Typography>
                     </Box>
                     
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, my: 1 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, my: 1 }}>
                       {item.size && (
                         <Typography variant="body2" color="text.secondary">
                           Size: {item.size}
@@ -151,42 +206,47 @@ const Cart = () => {
                           Color: {item.color}
                         </Typography>
                       )}
+                      <Typography variant="body2" color="text.secondary">
+                        Price: {formatCurrency(item.price)}
+                      </Typography>
                     </Box>
                     
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      mt: 2
-                    }}>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        mt: 2,
+                        flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                        gap: { xs: 1, sm: 0 }
+                      }}
+                    >
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <IconButton 
                           size="small" 
                           onClick={() => handleQuantityChange(item._id, -1)}
-                          disabled={loading}
+                          disabled={item.quantity <= 1}
                         >
-                          <RemoveIcon />
+                          <RemoveIcon fontSize="small" />
                         </IconButton>
-                        <Typography sx={{ mx: 2 }}>
+                        <Typography sx={{ mx: 1, minWidth: '24px', textAlign: 'center' }}>
                           {item.quantity}
                         </Typography>
                         <IconButton 
                           size="small" 
                           onClick={() => handleQuantityChange(item._id, 1)}
-                          disabled={loading}
                         >
-                          <AddIcon />
+                          <AddIcon fontSize="small" />
                         </IconButton>
                       </Box>
                       
-                      <Button
-                        startIcon={<DeleteIcon />}
-                        color="error"
+                      <IconButton 
                         onClick={() => handleRemoveItem(item._id)}
-                        disabled={loading}
+                        color="error"
+                        sx={{ ml: { xs: 'auto', sm: 2 } }}
                       >
-                        Remove
-                      </Button>
+                        <DeleteIcon />
+                      </IconButton>
                     </Box>
                   </CardContent>
                 </Card>
@@ -195,8 +255,12 @@ const Cart = () => {
           </Grid>
           
           <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
+            <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ fontSize: { xs: '1.125rem', sm: '1.25rem' } }}
+              >
                 Order Summary
               </Typography>
               <Divider sx={{ my: 2 }} />
@@ -223,7 +287,7 @@ const Cart = () => {
                 color="primary"
                 size="large"
                 fullWidth
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, py: 1.5 }}
                 onClick={handleCheckout}
               >
                 Proceed to Checkout

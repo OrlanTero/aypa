@@ -11,10 +11,12 @@ import {
   CircularProgress,
   ThemeProvider,
   createTheme,
-  CssBaseline
+  CssBaseline,
+  useTheme,
+  alpha
 } from '@mui/material';
-import { LockOutlined } from '@mui/icons-material';
 import { AuthContext } from '../../context/AuthContext';
+import logo from '../../assets/logo.png';
 
 // Create a custom theme for the admin login page
 const theme = createTheme({
@@ -74,47 +76,46 @@ const AdminLogin = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          background: 'linear-gradient(to right bottom, #1976d2, #90caf9)'
+      <Box 
+        sx={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center',
+          py: 6,
+          background: theme => `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.1)}, ${alpha(theme.palette.secondary.light, 0.1)})`
         }}
       >
-        <Container maxWidth="xs">
+        <Container maxWidth="sm">
           <Paper 
-            elevation={6} 
+            elevation={2} 
             sx={{ 
-              p: 4, 
+              p: { xs: 3, md: 5 }, 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              borderRadius: 2
+              borderRadius: 3,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.12)'
             }}
           >
-            <Box
-              sx={{
-                bgcolor: 'primary.main',
-                color: 'white',
-                borderRadius: '50%',
-                p: 1,
-                mb: 2,
-                display: 'flex',
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
                 alignItems: 'center',
-                justifyContent: 'center'
+                mb: 4 
               }}
             >
-              <LockOutlined />
+              <img src={logo} alt="AYPA Logo" style={{ height: 60, marginBottom: 16 }} />
+              <Typography component="h1" variant="h4" fontWeight={700}>
+                Admin Portal
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                Sign in to your admin account
+              </Typography>
             </Box>
-            
-            <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-              AYPA Admin Login
-            </Typography>
 
             {(formError || authError) && (
-              <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
                 {formError || authError}
               </Alert>
             )}
@@ -132,6 +133,12 @@ const AdminLogin = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
               />
               <TextField
                 margin="normal"
@@ -145,22 +152,38 @@ const AdminLogin = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                sx={{
+                  mb: 3,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
               />
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                sx={{ mt: 3, mb: 2, py: 1.5 }}
+                size="large"
                 disabled={loading}
+                sx={{ 
+                  py: 1.5,
+                  borderRadius: 2,
+                  background: theme => `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.light} 90%)`,
+                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.15)',
+                  '&:hover': {
+                    boxShadow: '0 6px 12px rgba(0, 0, 0, 0.2)',
+                  },
+                  mb: 2
+                }}
               >
                 {loading ? <CircularProgress size={24} /> : 'Sign In'}
               </Button>
             </Box>
           </Paper>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 4 }}>
+            © {new Date().getFullYear()} AYPA Admin Portal
+          </Typography>
         </Container>
-        <Typography variant="body2" color="white" align="center" sx={{ mt: 4 }}>
-          © {new Date().getFullYear()} AYPA Admin Portal
-        </Typography>
       </Box>
     </ThemeProvider>
   );

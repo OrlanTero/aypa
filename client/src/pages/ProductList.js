@@ -454,7 +454,7 @@ const ProductList = () => {
             <>
               <Grid container spacing={3}>
                 {paginatedProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} key={product._id}>
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
                     <Card 
                       sx={{ 
                         height: '100%', 
@@ -464,66 +464,150 @@ const ProductList = () => {
                         '&:hover': {
                           transform: 'translateY(-8px)',
                           boxShadow: (theme) => theme.shadows[4],
-                        }
+                        },
+                        borderRadius: 2,
+                        overflow: 'hidden'
                       }}
                     >
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={getProductImageUrl(product, 0)}
-                        alt={product.name}
-                        sx={{ objectFit: 'contain', p: 2, bgcolor: 'background.paper' }}
-                        onError={handleImageError(defaultProductImage)}
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          pt: '75%', // 4:3 aspect ratio
+                          bgcolor: 'background.paper',
+                          cursor: 'pointer'
+                        }}
                         onClick={() => navigate(`/products/${product._id}`)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <CardContent sx={{ flexGrow: 1 }}>
+                      >
+                        <CardMedia
+                          component="img"
+                          image={getProductImageUrl(product, 0)}
+                          alt={product.name}
+                          sx={{ 
+                            objectFit: 'contain',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            p: 2
+                          }}
+                          onError={handleImageError(defaultProductImage)}
+                        />
+                        {product.stock === 0 && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 10,
+                              right: 10,
+                              bgcolor: 'error.main',
+                              color: 'white',
+                              py: 0.5,
+                              px: 1,
+                              borderRadius: 1,
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Out of Stock
+                          </Box>
+                        )}
+                      </Box>
+                      
+                      <CardContent sx={{ 
+                        flexGrow: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        p: { xs: 1.5, sm: 2 }
+                      }}>
                         <Typography 
                           gutterBottom 
                           variant="h6" 
                           component="h2" 
-                          onClick={() => navigate(`/products/${product._id}`)}
-                          sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                          sx={{ 
+                            mb: 0.5,
+                            fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
+                            lineHeight: 1.2,
+                            fontWeight: 600,
+                            height: { xs: 'auto', sm: '2.4em' },
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                          }}
                         >
                           {product.name}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {product.description && product.description.length > 75
-                            ? `${product.description.substring(0, 75)}...`
-                            : product.description}
-                        </Typography>
+                        
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Rating
-                            value={getAverageRating(product.ratings)}
-                            precision={0.5}
+                          <Rating 
+                            value={product.ratings?.length ? product.ratings.reduce((acc, curr) => acc + curr.rating, 0) / product.ratings.length : 0} 
+                            precision={0.5} 
+                            readOnly 
                             size="small"
-                            readOnly
                           />
-                          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                            ({product.ratings ? product.ratings.length : 0})
+                          <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                            ({product.ratings?.length || 0})
                           </Typography>
                         </Box>
-                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                        
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{
+                            mb: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            height: { xs: 'auto', sm: '2.5em' }
+                          }}
+                        >
+                          {product.description}
+                        </Typography>
+                        
+                        <Typography 
+                          variant="h6" 
+                          color="primary" 
+                          sx={{ 
+                            mt: 'auto',
+                            fontWeight: 'bold',
+                            fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                          }}
+                        >
                           {formatCurrency(product.price)}
                         </Typography>
+                        
+                        {/* Size chips */}
                         {product.sizes && product.sizes.length > 0 && (
                           <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {product.sizes.slice(0, 4).map((size) => (
+                            {product.sizes.slice(0, 3).map((size) => (
                               <Chip key={size} label={size} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} />
                             ))}
-                            {product.sizes.length > 4 && (
-                              <Chip label={`+${product.sizes.length - 4}`} size="small" variant="outlined" />
+                            {product.sizes.length > 3 && (
+                              <Chip label={`+${product.sizes.length - 3}`} size="small" variant="outlined" />
                             )}
                           </Box>
                         )}
                       </CardContent>
                       <Divider />
-                      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
+                      <Box sx={{ 
+                        p: { xs: 1.5, sm: 2 }, 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
                         <Button 
                           variant="outlined" 
                           size="small" 
                           component={Link} 
                           to={`/products/${product._id}`}
+                          sx={{ 
+                            minWidth: { xs: '60px', sm: 'auto' }, 
+                            fontSize: { xs: '0.7rem', sm: '0.8125rem' },
+                            px: { xs: 1, sm: 2 }
+                          }}
                         >
                           Details
                         </Button>
@@ -533,8 +617,13 @@ const ProductList = () => {
                           disabled={product.stock === 0}
                           onClick={() => handleAddToCart(product)}
                           startIcon={<CartIcon />}
+                          sx={{ 
+                            minWidth: { xs: '60px', sm: 'auto' }, 
+                            fontSize: { xs: '0.7rem', sm: '0.8125rem' },
+                            px: { xs: 1, sm: 2 }
+                          }}
                         >
-                          {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                          {product.stock === 0 ? 'Out of Stock' : 'Add'}
                         </Button>
                       </Box>
                     </Card>
@@ -543,18 +632,15 @@ const ProductList = () => {
               </Grid>
               
               {/* Pagination */}
-              {totalFilteredPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                  <Pagination
-                    count={totalFilteredPages}
-                    page={page}
-                    onChange={handlePageChange}
-                    color="primary"
-                    showFirstButton
-                    showLastButton
-                  />
-                </Box>
-              )}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+                <Pagination 
+                  count={Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)} 
+                  page={page} 
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="medium"
+                />
+              </Box>
             </>
           )}
         </Grid>

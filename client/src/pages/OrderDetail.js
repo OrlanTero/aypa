@@ -363,12 +363,12 @@ const OrderDetail = () => {
                   <TableRow>
                     <TableCell colSpan={2} />
                     <TableCell align="right"><strong>Subtotal:</strong></TableCell>
-                    <TableCell align="right">{formatCurrency(order.subtotal || 0)}</TableCell>
+                    <TableCell align="right">{formatCurrency(order.subtotal || (order.totalAmount - order.deliveryFee) || 0)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={2} />
                     <TableCell align="right"><strong>Shipping:</strong></TableCell>
-                    <TableCell align="right">{formatCurrency(order.shippingFee || 0)}</TableCell>
+                    <TableCell align="right">{formatCurrency(order.deliveryFee || 0)}</TableCell>
                   </TableRow>
                   {order.discount > 0 && (
                     <TableRow>

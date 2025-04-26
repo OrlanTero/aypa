@@ -413,7 +413,8 @@ const Checkout = () => {
         items,
         totalAmount: total,
         shippingAddress,
-        paymentMethod: apiPaymentMethod
+        paymentMethod: apiPaymentMethod,
+        deliveryFee
       };
       
       // Add payment info directly to the request object for GCash or PayMaya

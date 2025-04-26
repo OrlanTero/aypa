@@ -17,7 +17,8 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  Tooltip
+  Tooltip,
+  alpha
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -27,10 +28,13 @@ import {
   BarChart as ReportsIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  KeyboardArrowRight,
+  AccountCircle
 } from '@mui/icons-material';
 import { styled, useTheme } from '@mui/material/styles';
 import { getUserAvatarUrl } from '../../utils/imageUtils';
+import logo from '../../assets/logo.png';
 
 import { AuthContext } from '../../context/AuthContext';
 
@@ -40,6 +44,7 @@ const AdminLayout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
@@ -77,10 +82,15 @@ const AdminLayout = ({ children }) => {
     <div>
       <Toolbar sx={{ 
         display: 'flex', 
+        flexDirection: 'column',
         justifyContent: 'center', 
-        py: 1.5,
+        alignItems: 'center',
+        py: 2,
         backgroundColor: 'primary.dark'
       }}>
+        <Box sx={{ mb: 1 }}>
+          <img src={logo} alt="AYPA Logo" style={{ height: 40, marginBottom: 8 }} />
+        </Box>
         <Typography variant="h6" noWrap component="div" color="white">
           AYPA Admin
         </Typography>
@@ -140,9 +150,10 @@ const AdminLayout = ({ children }) => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          boxShadow: 2
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ px: { xs: 1, sm: 2 }, py: { xs: 0.5, sm: 0 } }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -152,7 +163,15 @@ const AdminLayout = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.25rem' } 
+            }}
+          >
             {/* Get the current page title based on location */}
             {menuItems.find(item => isActive(item.path))?.text || 'Admin Panel'}
           </Typography>
@@ -165,11 +184,20 @@ const AdminLayout = ({ children }) => {
               edge="end"
               aria-haspopup="true"
               color="inherit"
+              sx={{ 
+                border: `2px solid ${alpha('#fff', 0.5)}`,
+                padding: '3px'
+              }}
             >
               <Avatar 
-                sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}
+                sx={{ 
+                  width: { xs: 28, sm: 32 }, 
+                  height: { xs: 28, sm: 32 },
+                  bgcolor: 'secondary.main' 
+                }}
                 src={getUserAvatarUrl(user)}
               >
+                {user?.name?.charAt(0) || 'A'}
               </Avatar>
             </IconButton>
           </Tooltip>
@@ -180,18 +208,66 @@ const AdminLayout = ({ children }) => {
             keepMounted
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              elevation: 3,
+              sx: {
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.15))',
+                mt: 1.5,
+                borderRadius: 2,
+                minWidth: 220,
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: 'background.paper',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                },
+              },
+            }}
           >
+            <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center' }}>
+              <Avatar 
+                sx={{ width: 40, height: 40, mr: 1.5, bgcolor: theme.palette.secondary.main }}
+                src={getUserAvatarUrl(user)}
+              >
+                {user?.name?.charAt(0) || 'A'}
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                  {user?.name || 'Admin'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  Administrator
+                </Typography>
+              </Box>
+            </Box>
+            <Divider />
             <MenuItem onClick={() => { handleUserMenuClose(); navigate('/admin/profile'); }}>
               <ListItemIcon>
-                <PersonIcon fontSize="small" />
+                <PersonIcon fontSize="small" color="primary" />
               </ListItemIcon>
-              Profile
+              <ListItemText primary="My Profile" />
+              <KeyboardArrowRight fontSize="small" color="action" sx={{ opacity: 0.5 }} />
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
+            <MenuItem onClick={() => { handleUserMenuClose(); navigate('/admin/settings'); }}>
               <ListItemIcon>
-                <LogoutIcon fontSize="small" />
+                <SettingsIcon fontSize="small" color="primary" />
               </ListItemIcon>
-              Logout
+              <ListItemText primary="Settings" />
+              <KeyboardArrowRight fontSize="small" color="action" sx={{ opacity: 0.5 }} />
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout} sx={{ color: theme.palette.error.main }}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" sx={{ color: theme.palette.error.main }} />
+              </ListItemIcon>
+              <ListItemText primary="Sign Out" />
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -212,7 +288,11 @@ const AdminLayout = ({ children }) => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: { xs: '80%', sm: drawerWidth },
+              maxWidth: 320
+            },
           }}
         >
           {drawer}
@@ -235,7 +315,7 @@ const AdminLayout = ({ children }) => {
         component="main"
         sx={{ 
           flexGrow: 1,
-          p: 3, 
+          p: { xs: 2, sm: 3 }, 
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           backgroundColor: '#f5f8fa'

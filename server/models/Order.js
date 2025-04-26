@@ -31,6 +31,11 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  deliveryFee: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   shippingAddress: {
     street: {
       type: String,

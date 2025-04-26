@@ -191,11 +191,11 @@ const ProductDetail = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
-      <Grid container spacing={4}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 4, sm: 6 } }}>
+      <Grid container spacing={{ xs: 2, md: 4 }}>
         {/* Product Images */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
+          <Paper elevation={2} sx={{ p: { xs: 1, sm: 2 }, mb: 2 }}>
             <Box
               component="img"
               src={getProductImageUrl(product, selectedImage)}
@@ -203,22 +203,27 @@ const ProductDetail = () => {
               sx={{
                 width: '100%',
                 height: 'auto',
-                maxHeight: 400,
+                maxHeight: { xs: 300, sm: 400 },
                 objectFit: 'contain',
                 borderRadius: 1,
-                mb: 2
+                mb: { xs: 1, sm: 2 }
               }}
               onError={handleImageError(defaultProductImage)}
             />
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              justifyContent: 'center', 
+              gap: { xs: 0.5, sm: 1 } 
+            }}>
               {product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls.map((url, index) => (
                 <Box
                   key={index}
                   component="img"
                   src={getProductImageUrl(product, index)}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
                     objectFit: 'cover',
                     cursor: 'pointer',
                     border: index === selectedImage ? '2px solid #1976d2' : '2px solid transparent',
@@ -232,8 +237,8 @@ const ProductDetail = () => {
                   component="img"
                   src={defaultProductImage}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: { xs: 60, sm: 80 },
+                    height: { xs: 60, sm: 80 },
                     objectFit: 'cover',
                     borderRadius: 1
                   }}
@@ -245,8 +250,17 @@ const ProductDetail = () => {
 
         {/* Product Details */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
+          <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              gutterBottom
+              sx={{ 
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' },
+                fontWeight: 600,
+                lineHeight: 1.2
+              }}
+            >
               {product.name}
             </Typography>
             
@@ -255,13 +269,22 @@ const ProductDetail = () => {
                 value={getAverageRating(product.ratings)}
                 precision={0.1}
                 readOnly
+                size="small"
               />
               <Typography variant="body2" sx={{ ml: 1 }}>
                 ({product.ratings?.length || 0} reviews)
               </Typography>
             </Box>
             
-            <Typography variant="h5" color="primary" sx={{ mb: 2 }}>
+            <Typography 
+              variant="h5" 
+              color="primary" 
+              sx={{ 
+                mb: 2,
+                fontWeight: 'bold',
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              }}
+            >
               {formatCurrency(product.price)}
             </Typography>
             
@@ -293,49 +316,49 @@ const ProductDetail = () => {
             
             <Divider sx={{ mb: 2 }} />
             
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              {product.sizes && product.sizes.length > 0 && (
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="size-select-label">Size</InputLabel>
-                    <Select
-                      labelId="size-select-label"
-                      id="size-select"
-                      value={selectedSize}
-                      label="Size"
-                      onChange={handleSizeChange}
-                    >
-                      {product.sizes.map((size) => (
-                        <MenuItem key={size} value={size}>
-                          {size}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
-              
-              {product.colors && product.colors.length > 0 && (
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel id="color-select-label">Color</InputLabel>
-                    <Select
-                      labelId="color-select-label"
-                      id="color-select"
-                      value={selectedColor}
-                      label="Color"
-                      onChange={handleColorChange}
-                    >
-                      {product.colors.map((color) => (
-                        <MenuItem key={color} value={color}>
-                          {color}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
-            </Grid>
+            {/* Size Selection */}
+            {product.sizes && product.sizes.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel id="size-select-label">Size</InputLabel>
+                  <Select
+                    labelId="size-select-label"
+                    id="size-select"
+                    value={selectedSize}
+                    label="Size"
+                    onChange={handleSizeChange}
+                  >
+                    {product.sizes.map((size) => (
+                      <MenuItem key={size} value={size}>
+                        {size}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+            
+            {/* Color Selection */}
+            {product.colors && product.colors.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel id="color-select-label">Color</InputLabel>
+                  <Select
+                    labelId="color-select-label"
+                    id="color-select"
+                    value={selectedColor}
+                    label="Color"
+                    onChange={handleColorChange}
+                  >
+                    {product.colors.map((color) => (
+                      <MenuItem key={color} value={color}>
+                        {color}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
             
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <Typography variant="subtitle1" sx={{ mr: 2 }}>
@@ -367,7 +390,11 @@ const ProductDetail = () => {
               </Box>
             </Box>
             
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2,
+              flexDirection: { xs: 'column', sm: 'row' }
+            }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -376,31 +403,46 @@ const ProductDetail = () => {
                 disabled={product.stock <= 0}
                 size="large"
                 fullWidth
+                sx={{ py: { xs: 1, sm: 1.5 } }}
               >
                 Add to Cart
               </Button>
-              <IconButton color="secondary" aria-label="add to favorites">
-                <FavoriteIcon />
-              </IconButton>
-              <IconButton color="primary" aria-label="share">
-                <ShareIcon />
-              </IconButton>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1,
+                justifyContent: { xs: 'center', sm: 'flex-start' },
+                mt: { xs: 1, sm: 0 }
+              }}>
+                <IconButton color="secondary" aria-label="add to favorites">
+                  <FavoriteIcon />
+                </IconButton>
+                <IconButton color="primary" aria-label="share">
+                  <ShareIcon />
+                </IconButton>
+              </Box>
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
       {/* Tabs for Details, Reviews, etc. */}
-      <Paper sx={{ mt: 4 }}>
+      <Paper sx={{ mt: { xs: 2, sm: 4 } }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="product tabs">
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange} 
+            aria-label="product tabs"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+          >
             <Tab label="Description" id="tab-0" />
             <Tab label="Reviews" id="tab-1" />
             <Tab label="Shipping & Returns" id="tab-2" />
           </Tabs>
         </Box>
         
-        <Box role="tabpanel" hidden={tabValue !== 0} p={3}>
+        <Box role="tabpanel" hidden={tabValue !== 0} p={{ xs: 2, sm: 3 }}>
           {tabValue === 0 && (
             <Typography variant="body1">
               {product.description}
@@ -408,7 +450,7 @@ const ProductDetail = () => {
           )}
         </Box>
         
-        <Box role="tabpanel" hidden={tabValue !== 1} p={3}>
+        <Box role="tabpanel" hidden={tabValue !== 1} p={{ xs: 2, sm: 3 }}>
           {tabValue === 1 && (
             <Box>
               <Typography variant="h6" gutterBottom>
@@ -438,26 +480,38 @@ const ProductDetail = () => {
           )}
         </Box>
         
-        <Box role="tabpanel" hidden={tabValue !== 2} p={3}>
+        <Box role="tabpanel" hidden={tabValue !== 2} p={{ xs: 2, sm: 3 }}>
           {tabValue === 2 && (
-            <Typography variant="body1">
-              <strong>Shipping Policy:</strong><br />
-              We offer free standard shipping on all orders over $50. Orders typically ship within 1-2 business days and delivery times vary based on location.<br /><br />
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Shipping Information
+              </Typography>
+              <Typography variant="body2" paragraph>
+                We ship all over the Philippines. Standard delivery takes 3-5 business days, while express shipping takes 1-2 business days.
+              </Typography>
               
-              <strong>Return Policy:</strong><br />
-              We accept returns within 30 days of purchase. Items must be in original condition with tags attached. Please contact customer service to initiate a return.
-            </Typography>
+              <Typography variant="h6" gutterBottom>
+                Return Policy
+              </Typography>
+              <Typography variant="body2">
+                Returns are accepted within 7 days of delivery. Items must be unused and in original packaging. Please contact our customer service team to initiate a return.
+              </Typography>
+            </Box>
           )}
         </Box>
       </Paper>
-
+      
+      {/* Notification snackbar */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity}>
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>

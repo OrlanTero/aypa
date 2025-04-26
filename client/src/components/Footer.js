@@ -9,7 +9,10 @@ import {
   IconButton, 
   Stack,
   useTheme,
-  alpha
+  alpha,
+  Button,
+  TextField,
+  Paper
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import {
@@ -19,8 +22,10 @@ import {
   LinkedIn as LinkedInIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
-  LocationOn as LocationIcon
+  LocationOn as LocationIcon,
+  Send as SendIcon
 } from '@mui/icons-material';
+import logo from '../assets/logo.png';
 
 const Footer = () => {
   const theme = useTheme();
@@ -29,7 +34,7 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        py: 5,
+        py: 6,
         px: 2,
         mt: 'auto',
         backgroundColor: theme.palette.background.dark,
@@ -39,17 +44,20 @@ const Footer = () => {
       <Container maxWidth="lg">
         <Grid container spacing={4}>
           <Grid item xs={12} sm={6} md={4}>
-            <Typography 
-              variant="h5" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 700, 
-                color: theme.palette.accent.main,
-                mb: 2
-              }}
-            >
-              AYPA Shop
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <img src={logo} alt="AYPA Logo" style={{ height: 40, marginRight: 12 }} />
+              <Typography 
+                variant="h5" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 700, 
+                  color: theme.palette.accent.main,
+                  m: 0
+                }}
+              >
+                AYPA
+              </Typography>
+            </Box>
             <Typography variant="body2" sx={{ mb: 3, color: alpha(theme.palette.common.white, 0.7) }}>
               Your one-stop shop for custom apparel and accessories. We provide high-quality
               products with customized designs for your specific needs.
@@ -60,7 +68,12 @@ const Footer = () => {
                 aria-label="facebook" 
                 sx={{ 
                   color: theme.palette.common.white,
-                  '&:hover': { color: theme.palette.primary.main }
+                  '&:hover': { color: theme.palette.primary.main },
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  '&:hover': { 
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                    color: theme.palette.accent.main
+                  }
                 }}
               >
                 <FacebookIcon />
@@ -70,7 +83,11 @@ const Footer = () => {
                 aria-label="twitter" 
                 sx={{ 
                   color: theme.palette.common.white,
-                  '&:hover': { color: theme.palette.primary.main }
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  '&:hover': { 
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                    color: theme.palette.accent.main
+                  }
                 }}
               >
                 <TwitterIcon />
@@ -80,7 +97,11 @@ const Footer = () => {
                 aria-label="instagram" 
                 sx={{ 
                   color: theme.palette.common.white,
-                  '&:hover': { color: theme.palette.primary.main }
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  '&:hover': { 
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                    color: theme.palette.accent.main
+                  }
                 }}
               >
                 <InstagramIcon />
@@ -90,7 +111,11 @@ const Footer = () => {
                 aria-label="linkedin" 
                 sx={{ 
                   color: theme.palette.common.white,
-                  '&:hover': { color: theme.palette.primary.main }
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  '&:hover': { 
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                    color: theme.palette.accent.main
+                  }
                 }}
               >
                 <LinkedInIcon />
@@ -104,20 +129,23 @@ const Footer = () => {
               sx={{ 
                 fontWeight: 600,
                 color: theme.palette.common.white,
-                mb: 2
+                mb: 3
               }}
             >
               Quick Links
             </Typography>
-            <Stack spacing={1.5}>
+            <Stack spacing={2}>
               <Link 
                 component={RouterLink} 
                 to="/" 
                 sx={{ 
                   color: alpha(theme.palette.common.white, 0.7),
                   textDecoration: 'none',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
                   '&:hover': { 
-                    color: theme.palette.accent.main
+                    color: theme.palette.accent.main,
+                    transform: 'translateX(5px)'
                   }
                 }}
               >
@@ -129,8 +157,11 @@ const Footer = () => {
                 sx={{ 
                   color: alpha(theme.palette.common.white, 0.7),
                   textDecoration: 'none',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
                   '&:hover': { 
-                    color: theme.palette.accent.main
+                    color: theme.palette.accent.main,
+                    transform: 'translateX(5px)'
                   }
                 }}
               >
@@ -142,12 +173,31 @@ const Footer = () => {
                 sx={{ 
                   color: alpha(theme.palette.common.white, 0.7),
                   textDecoration: 'none',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
                   '&:hover': { 
-                    color: theme.palette.accent.main
+                    color: theme.palette.accent.main,
+                    transform: 'translateX(5px)'
                   }
                 }}
               >
                 Cart
+              </Link>
+              <Link 
+                component={RouterLink} 
+                to="/login" 
+                sx={{ 
+                  color: alpha(theme.palette.common.white, 0.7),
+                  textDecoration: 'none',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
+                  '&:hover': { 
+                    color: theme.palette.accent.main,
+                    transform: 'translateX(5px)'
+                  }
+                }}
+              >
+                Account
               </Link>
             </Stack>
           </Grid>
@@ -158,7 +208,7 @@ const Footer = () => {
               sx={{ 
                 fontWeight: 600,
                 color: theme.palette.common.white,
-                mb: 2
+                mb: 3
               }}
             >
               Contact Us
@@ -209,44 +259,88 @@ const Footer = () => {
               sx={{ 
                 fontWeight: 600,
                 color: theme.palette.common.white,
-                mb: 2
+                mb: 3
               }}
             >
-              Business Hours
+              Newsletter
             </Typography>
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ color: theme.palette.common.white }}>
-                Monday - Friday
-              </Typography>
-              <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
-                9:00 AM - 6:00 PM
-              </Typography>
-            </Box>
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ color: theme.palette.common.white }}>
-                Saturday
-              </Typography>
-              <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
-                10:00 AM - 4:00 PM
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="subtitle2" sx={{ color: theme.palette.common.white }}>
-                Sunday
-              </Typography>
-              <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.7) }}>
-                Closed
-              </Typography>
-            </Box>
+            <Typography variant="body2" sx={{ mb: 2, color: alpha(theme.palette.common.white, 0.7) }}>
+              Subscribe to receive updates on new arrivals and special offers
+            </Typography>
+            <Paper
+              component="form"
+              sx={{ 
+                p: '2px 4px', 
+                display: 'flex', 
+                alignItems: 'center',
+                bgcolor: alpha(theme.palette.common.white, 0.05),
+                border: `1px solid ${alpha(theme.palette.common.white, 0.1)}`,
+                borderRadius: 2
+              }}
+            >
+              <TextField
+                size="small"
+                placeholder="Your email address"
+                variant="standard"
+                fullWidth
+                InputProps={{
+                  disableUnderline: true,
+                  sx: { 
+                    px: 1,
+                    color: 'white',
+                    '&::placeholder': {
+                      color: alpha(theme.palette.common.white, 0.5),
+                    }
+                  }
+                }}
+              />
+              <IconButton 
+                type="submit" 
+                aria-label="subscribe" 
+                sx={{ 
+                  color: theme.palette.accent.main,
+                  p: '10px',
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.accent.main, 0.1)
+                  }
+                }}
+              >
+                <SendIcon />
+              </IconButton>
+            </Paper>
           </Grid>
         </Grid>
         
         <Divider sx={{ my: 4, borderColor: alpha(theme.palette.common.white, 0.1) }} />
         
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.6) }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.6), mb: { xs: 2, sm: 0 } }}>
             © {new Date().getFullYear()} AYPA E-commerce. All rights reserved.
           </Typography>
+          <Box>
+            <Link 
+              href="#" 
+              sx={{ 
+                color: alpha(theme.palette.common.white, 0.6), 
+                mx: 1,
+                textDecoration: 'none',
+                '&:hover': { color: theme.palette.accent.main }
+              }}
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href="#" 
+              sx={{ 
+                color: alpha(theme.palette.common.white, 0.6), 
+                mx: 1,
+                textDecoration: 'none',
+                '&:hover': { color: theme.palette.accent.main }
+              }}
+            >
+              Terms of Service
+            </Link>
+          </Box>
         </Box>
       </Container>
     </Box>
