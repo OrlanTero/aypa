@@ -16,6 +16,7 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import NotFound from './pages/NotFound';
 import ProfilePage from './pages/Profile';
+import CustomerSupport from './pages/CustomerSupport';
 
 // Admin Pages
 import AdminLogin from './pages/admin/Login';
@@ -231,6 +232,7 @@ function App() {
                   <CustomerLayout><Checkout /></CustomerLayout>
                 </CustomerProtectedRoute>
               } />
+              <Route path="/support" element={<CustomerLayout><CustomerSupport /></CustomerLayout>} />
               
               {/* Catch-all route */}
               <Route path="*" element={<CustomerLayout><NotFound /></CustomerLayout>} />

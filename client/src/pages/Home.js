@@ -389,40 +389,6 @@ const Home = () => {
           </Box>
         </Box>
 
-        {/* New Arrivals Section - using the same pattern as above */}
-        <Box sx={{ mb: { xs: 4, sm: 6 } }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mb: { xs: 2, sm: 3 }
-          }}>
-            <Typography 
-              variant="h4" 
-              component="h2"
-              sx={{ 
-                fontWeight: 600,
-                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2rem' } 
-              }}
-            >
-              New Arrivals
-            </Typography>
-            <Button 
-              component={RouterLink} 
-              to="/products?sort=newest" 
-              endIcon={<ArrowForwardIcon />}
-              sx={{ 
-                display: { xs: 'none', sm: 'flex' },
-                fontSize: { xs: '0.8rem', sm: '0.875rem' }
-              }}
-            >
-              View All
-            </Button>
-          </Box>
-          
-          {/* Similar Grid with Cards */}
-          {/* ... */}
-        </Box>
 
         {/* Product Categories */}
         <Box sx={{ mb: { xs: 4, sm: 6 } }}>

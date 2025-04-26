@@ -37,12 +37,14 @@ import {
   History,
   FavoriteBorder,
   Settings,
-  KeyboardArrowRight
+  KeyboardArrowRight,
+  HelpOutline
 } from '@mui/icons-material';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
 import logo from '../../assets/logo.png';
 import { getUserAvatarUrl } from '../../utils/imageUtils';
+import Chatbot from '../customer/Chatbot';
 
 const CustomerLayout = ({ children }) => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
@@ -196,6 +198,10 @@ const CustomerLayout = ({ children }) => {
           <ListItemIcon><Store /></ListItemIcon>
           <ListItemText primary="Products" />
         </ListItem>
+        <ListItem component={Link} to="/support">
+          <ListItemIcon><HelpOutline /></ListItemIcon>
+          <ListItemText primary="Support" />
+        </ListItem>
         {isAuthenticated && (
           <>
             <ListItem component={Link} to="/cart">
@@ -292,6 +298,9 @@ const CustomerLayout = ({ children }) => {
               </Button>
               <Button color="inherit" component={Link} to="/products">
                 Products
+              </Button>
+              <Button color="inherit" component={Link} to="/support">
+                Support
               </Button>
               {isAuthenticated && (
                 <Button color="inherit" component={Link} to="/orders">
@@ -395,6 +404,8 @@ const CustomerLayout = ({ children }) => {
           </Typography>
         </Container>
       </Box>
+      
+      <Chatbot />
     </Box>
   );
 };

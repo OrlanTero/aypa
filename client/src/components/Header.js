@@ -28,7 +28,8 @@ import {
   Storefront as StorefrontIcon,
   PersonOutline as PersonIcon,
   ShoppingBag as ShoppingBagIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  HelpOutline as HelpOutlineIcon
 } from '@mui/icons-material';
 
 import { AuthContext } from '../context/AuthContext';
@@ -107,6 +108,7 @@ const Header = () => {
   const navItems = [
     { label: 'Home', path: '/', icon: <StorefrontIcon /> },
     { label: 'Products', path: '/products', icon: <ShoppingBagIcon /> },
+    { label: 'Support', path: '/support', icon: <HelpOutlineIcon /> },
     { label: 'Cart', path: '/cart', icon: <CartIcon /> }
   ];
 
