@@ -37,6 +37,7 @@ import { formatCurrency } from '../utils/formatters';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import logo from '../assets/logo.png';
 import logoAnother from '../assets/logo.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -52,6 +53,7 @@ const Home = () => {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.HOME);
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);

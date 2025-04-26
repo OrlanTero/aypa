@@ -21,6 +21,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { userAPI } from '../../utils/api';
 import { getUserAvatarUrl } from '../../utils/imageUtils';
 import defaultUserAvatar from '../../assets/default-avatar.png';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 const Profile = () => {
   const { user, updateUser } = useContext(AuthContext);
@@ -49,6 +50,7 @@ const Profile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_PROFILE);
     if (user) {
       setFormData({
         name: user.name || '',

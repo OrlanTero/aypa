@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -46,6 +47,10 @@ const Register = () => {
   const [showAddress, setShowAddress] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(null);
+  
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.REGISTER);
+  }, []);
   
   const handleChange = (e) => {
     const { name, value } = e.target;

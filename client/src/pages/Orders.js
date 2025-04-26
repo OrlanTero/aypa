@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Container,
@@ -42,6 +42,7 @@ import { ordersAPI } from '../utils/api';
 import { formatDate, formatCurrency } from '../utils/format';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -52,6 +53,7 @@ const Orders = () => {
   const [rowsPerPage] = useState(5);
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ORDERS);
     const fetchOrders = async () => {
       try {
         setLoading(true);

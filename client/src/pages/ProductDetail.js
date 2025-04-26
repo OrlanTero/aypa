@@ -38,6 +38,7 @@ import { PRODUCT_ENDPOINTS } from '../constants/apiConfig';
 import defaultProductImage from '../assets/default-product.jpg';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import { formatCurrency } from '../utils/formatters';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -73,6 +74,7 @@ const ProductDetail = () => {
         }
         
         setLoading(false);
+        setDocumentTitle(product ? `${product.name} | ${PAGE_TITLES.PRODUCT_DETAIL}` : PAGE_TITLES.PRODUCT_DETAIL);
       } catch (err) {
         console.error('Error fetching product details:', err);
         setError('Failed to load product details. Please try again later.');

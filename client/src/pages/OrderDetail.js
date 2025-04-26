@@ -45,6 +45,7 @@ import { ordersAPI } from '../utils/api';
 import { formatDate, formatCurrency } from '../utils/format';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -60,6 +61,7 @@ const OrderDetail = () => {
         const response = await ordersAPI.getById(id);
         setOrder(response.data);
         setError(null);
+        setDocumentTitle(`Order #${response.data.orderNumber} | ${PAGE_TITLES.ORDER_DETAIL}`);
       } catch (err) {
         setError('Failed to load order details. Please try again later.');
         console.error('Error fetching order details:', err);

@@ -59,6 +59,7 @@ import {
 import axios from 'axios';
 import { ORDER_ENDPOINTS } from '../../constants/apiConfig';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Order status color mapping
 const getStatusColor = (status) => {
@@ -159,6 +160,7 @@ const Orders = () => {
   const [deliverySuccess, setDeliverySuccess] = useState(false);
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_ORDERS);
     fetchOrders();
   }, []);
 

@@ -39,6 +39,7 @@ import {
 import axios from 'axios';
 import { ORDER_ENDPOINTS, PRODUCT_ENDPOINTS } from '../../constants/apiConfig';
 import { formatCurrency } from '../../utils/formatters';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Tab Panel component
 function TabPanel(props) {
@@ -77,6 +78,7 @@ const Reports = () => {
   const [reportGenerating, setReportGenerating] = useState(false);
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_REPORTS);
     if (activeTab === 0) {
       fetchSalesData();
     } else if (activeTab === 1) {

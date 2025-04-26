@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -25,6 +25,7 @@ import axios from 'axios';
 import Chart from 'react-apexcharts';
 import { formatCurrency } from '../../utils/formatters';
 import { PRODUCT_ENDPOINTS, ORDER_ENDPOINTS, USER_ENDPOINTS } from '../../constants/apiConfig';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Custom styled components
 const StatsCard = styled(Card)(({ theme, color }) => ({
@@ -186,6 +187,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_DASHBOARD);
     fetchDashboardData();
   }, []);
 

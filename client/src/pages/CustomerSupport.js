@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Typography, 
@@ -21,8 +21,13 @@ import ForumIcon from '@mui/icons-material/Forum';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Chatbot from '../components/customer/Chatbot';
 import faqData from '../constants/faqData';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const CustomerSupport = () => {
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.SUPPORT);
+  }, []);
+
   return (
     <Container maxWidth="lg" sx={{ py: 6 }}>
       {/* Header */}

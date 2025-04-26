@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -34,6 +34,7 @@ import { PRODUCT_ENDPOINTS } from '../../constants/apiConfig';
 import { getProductImageUrl, handleImageError } from '../../utils/imageUtils';
 import { formatCurrency } from '../../utils/formatters';
 import defaultProductImage from '../../assets/default-product.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Import the product form and delete confirmation dialog
 import ProductForm from '../../components/admin/ProductForm';
@@ -67,6 +68,7 @@ const Inventory = () => {
   });
   
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_INVENTORY);
     fetchProducts();
   }, []);
   

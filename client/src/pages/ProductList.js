@@ -38,6 +38,7 @@ import { CartContext } from '../context/CartContext';
 import { formatCurrency } from '../utils/formatters';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const categories = ['All', 'TShirt', 'IDLaces', 'Accessories', 'Other'];
 const sortOptions = [
@@ -74,6 +75,7 @@ const ProductList = () => {
   const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.PRODUCTS);
     // Parse query params and set state
     const queryParams = new URLSearchParams(location.search);
     if (queryParams.get('category')) setSelectedCategory(queryParams.get('category'));
@@ -287,14 +289,14 @@ const ProductList = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3, fontWeight: 'bold' }}>
         Products
       </Typography>
       
       <Grid container spacing={3}>
         {/* Filters Sidebar */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={3} lg={2.5}>
           <Paper sx={{ p: 2, mb: { xs: 2, md: 0 }, position: { md: 'sticky' }, top: { md: '80px' } }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="h6" gutterBottom>
@@ -428,7 +430,7 @@ const ProductList = () => {
         </Grid>
         
         {/* Product Grid */}
-        <Grid item xs={12} md={9}>
+        <Grid item xs={12} md={9} lg={9.5}>
           {/* Showing results count */}
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body2" color="text.secondary">
@@ -454,7 +456,7 @@ const ProductList = () => {
             <>
               <Grid container spacing={3}>
                 {paginatedProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
+                  <Grid item xs={12} sm={6} md={6} lg={4} xl={3} key={product._id}>
                     <Card 
                       sx={{ 
                         height: '100%', 
@@ -466,7 +468,9 @@ const ProductList = () => {
                           boxShadow: (theme) => theme.shadows[4],
                         },
                         borderRadius: 2,
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        width: '100%',
+                        maxWidth: '100%'
                       }}
                     >
                       <Box
@@ -474,7 +478,8 @@ const ProductList = () => {
                           position: 'relative',
                           pt: '75%', // 4:3 aspect ratio
                           bgcolor: 'background.paper',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          width: '100%'
                         }}
                         onClick={() => navigate(`/products/${product._id}`)}
                       >
@@ -517,7 +522,8 @@ const ProductList = () => {
                         flexGrow: 1, 
                         display: 'flex', 
                         flexDirection: 'column',
-                        p: { xs: 1.5, sm: 2 }
+                        p: { xs: 1.5, sm: 2 },
+                        width: '100%'
                       }}>
                         <Typography 
                           gutterBottom 
@@ -528,7 +534,7 @@ const ProductList = () => {
                             fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
                             lineHeight: 1.2,
                             fontWeight: 600,
-                            height: { xs: 'auto', sm: '2.4em' },
+                            height: '2.4em',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             display: '-webkit-box',
@@ -561,7 +567,7 @@ const ProductList = () => {
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
-                            height: { xs: 'auto', sm: '2.5em' }
+                            height: '2.5em'
                           }}
                         >
                           {product.description}
@@ -581,7 +587,7 @@ const ProductList = () => {
                         
                         {/* Size chips */}
                         {product.sizes && product.sizes.length > 0 && (
-                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, height: '32px', overflow: 'hidden' }}>
                             {product.sizes.slice(0, 3).map((size) => (
                               <Chip key={size} label={size} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} />
                             ))}
@@ -590,13 +596,17 @@ const ProductList = () => {
                             )}
                           </Box>
                         )}
+                        {(!product.sizes || product.sizes.length === 0) && (
+                          <Box sx={{ mt: 1, height: '32px' }}></Box>
+                        )}
                       </CardContent>
                       <Divider />
                       <Box sx={{ 
                         p: { xs: 1.5, sm: 2 }, 
                         display: 'flex', 
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        width: '100%'
                       }}>
                         <Button 
                           variant="outlined" 

@@ -39,6 +39,7 @@ import { formatCurrency } from '../utils/formatters';
 import defaultProductImage from '../assets/default-product.jpg';
 import gcashQR from '../assets/gcash-qr.png';
 import paymayaQR from '../assets/paymaya-qr.png';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 // Steps in the checkout process
 const steps = ['Shipping Address', 'Delivery Method', 'Payment Method', 'Review Order'];
@@ -127,6 +128,7 @@ const Checkout = () => {
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.CHECKOUT);
     // Redirect if not authenticated
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/checkout' } });

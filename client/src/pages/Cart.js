@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -25,6 +25,7 @@ import {
 import { CartContext } from '../context/CartContext';
 import { formatCurrency } from '../utils/formatters';
 import defaultProductImage from '../assets/default-product.jpg';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -70,6 +71,10 @@ const Cart = () => {
   const handleCloseNotification = () => {
     setNotification({ ...notification, open: false });
   };
+
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.CART);
+  }, []);
 
   if (loading) {
     return (

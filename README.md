@@ -72,7 +72,6 @@ This will populate your database with:
 - Admin user (email: admin@aypa.com, password: admin123)
 - Customer users
 - Sample products
-- Sample orders
 
 ### Start the Backend Server
 
@@ -133,6 +132,13 @@ The project structure follows a client-server architecture:
   - `controllers/`: Route controllers
   - `middleware/`: Custom middleware
   - `config/`: Configuration files
+
+
+## Software Requirements
+ - Mongoose / MongoDB Software
+ - Vs Code
+ - Git 
+ - NodeJS
 
 ## License
 

@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Container, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
+import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
 const NotFound = () => {
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.NOT_FOUND);
+  }, []);
+
   return (
     <Container maxWidth="md">
       <Box

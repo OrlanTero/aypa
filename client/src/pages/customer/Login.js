@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -26,6 +27,10 @@ const Login = () => {
   const { login, error: authError, setError } = useContext(AuthContext);
   const navigate = useNavigate();
   const theme = useTheme();
+
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.LOGIN);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

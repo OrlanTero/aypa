@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { AuthContext } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
+import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Create a custom theme for the admin login page
 const theme = createTheme({
@@ -42,6 +43,10 @@ const AdminLogin = () => {
   
   const { loginAdmin, error: authError, setError } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setDocumentTitle(PAGE_TITLES.ADMIN_LOGIN);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
