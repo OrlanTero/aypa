@@ -22,7 +22,21 @@ AYPA E-commerce is a full-stack web application for selling customized products 
 - Node.js v14+
 - MongoDB (running on localhost:27017)
 
-## Installation
+## Quick Start (Windows)
+
+For Windows users, we've created convenient batch files to simplify setup and launching:
+
+1. **Install All Dependencies**: 
+   - Run `install-dependencies.bat` to install both client and server dependencies at once
+
+2. **Seed the Database**:
+   - Ensure MongoDB is running
+   - Run `server/seed-database.bat` to populate the database with initial data
+
+3. **Start the Application**:
+   - Run `start-application.bat` to launch both the server and client
+
+## Manual Installation
 
 ### Clone the repository
 
@@ -45,7 +59,7 @@ cd ../client
 npm install
 ```
 
-## Running the Application
+## Running the Application Manually
 
 ### Start MongoDB
 
@@ -64,7 +78,7 @@ sudo service mongod start
 From the server directory:
 
 ```bash
-cd ../server
+cd server
 node seed.js
 ```
 
@@ -76,8 +90,9 @@ This will populate your database with:
 ### Start the Backend Server
 
 ```bash
-cd ../server
-npm run dev
+cd server
+npm start  # For production
+npm run dev  # For development with auto-reload
 ```
 
 The server will run on http://localhost:5000
@@ -85,11 +100,23 @@ The server will run on http://localhost:5000
 ### Start the Frontend Client
 
 ```bash
-cd ../client
+cd client
 npm start
 ```
 
 The client will run on http://localhost:3000
+
+## Batch Files (Windows)
+
+The project includes several Windows batch files (.bat) to simplify common operations:
+
+### Root Directory
+- `install-dependencies.bat`: Installs all dependencies for both client and server
+- `start-application.bat`: Starts both the server and client simultaneously
+
+### Server Directory
+- `run-server.bat`: Starts only the backend server
+- `seed-database.bat`: Seeds the database with initial data (requires confirmation)
 
 ## User Roles
 
@@ -133,12 +160,29 @@ The project structure follows a client-server architecture:
   - `middleware/`: Custom middleware
   - `config/`: Configuration files
 
+## Troubleshooting
+
+### Common Issues:
+
+1. **MongoDB Connection Errors**:
+   - Ensure MongoDB is running on localhost:27017
+   - Check for any firewall restrictions
+
+2. **Port Conflicts**:
+   - The server uses port 5000 by default
+   - The client uses port 3000 by default
+   - If these ports are in use, you may need to modify the configurations
+
+3. **Dependencies Installation Errors**:
+   - Make sure you have the latest Node.js LTS version
+   - Try clearing npm cache: `npm cache clean --force`
+   - Delete node_modules folder and run npm install again
 
 ## Software Requirements
  - Mongoose / MongoDB Software
- - Vs Code
+ - VS Code (recommended) or any code editor
  - Git 
- - NodeJS
+ - Node.js v14 or higher
 
 ## License
 
