@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import ProductList from './pages/ProductList';
+import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
 import CustomerLogin from './pages/customer/Login';
 import CustomerRegister from './pages/customer/Register';
@@ -224,6 +225,7 @@ function App() {
                 </CustomerProtectedRoute>
               } />
               <Route path="/products" element={<CustomerLayout><ProductList /></CustomerLayout>} />
+              <Route path="/products/:id" element={<CustomerLayout><ProductDetail /></CustomerLayout>} />
               <Route path="/checkout" element={
                 <CustomerProtectedRoute>
                   <CustomerLayout><Checkout /></CustomerLayout>

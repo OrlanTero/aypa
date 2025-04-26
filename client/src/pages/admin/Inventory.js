@@ -31,13 +31,13 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { PRODUCT_ENDPOINTS } from '../../constants/apiConfig';
+import { getProductImageUrl, handleImageError } from '../../utils/imageUtils';
+import { formatCurrency } from '../../utils/formatters';
+import defaultProductImage from '../../assets/default-product.jpg';
 
 // Import the product form and delete confirmation dialog
 import ProductForm from '../../components/admin/ProductForm';
 import DeleteConfirmDialog from '../../components/admin/DeleteConfirmDialog';
-
-// Import the product placeholder
-import { PRODUCT_PLACEHOLDER } from '../../assets/placeholder-product';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -74,6 +74,19 @@ const Inventory = () => {
     try {
       setLoading(true);
       const response = await axios.get(PRODUCT_ENDPOINTS.ALL);
+      console.log('Products data from API:', response.data);
+      
+      // Log image URLs for debugging
+      if (response.data && response.data.length > 0) {
+        response.data.forEach(product => {
+          if (product.imageUrls && product.imageUrls.length > 0) {
+            console.log(`Product ${product.name} has images:`, product.imageUrls);
+            const imageUrl = getProductImageUrl(product, 0);
+            console.log(`First image URL processed to: ${imageUrl}`);
+          }
+        });
+      }
+      
       setProducts(response.data);
       setError(null);
     } catch (err) {
@@ -82,76 +95,6 @@ const Inventory = () => {
       
       // For demo purposes, use mock data if API fails
       setProducts([
-        {
-          _id: '1',
-          name: 'AYPA Branded T-Shirt',
-          description: 'Comfortable cotton t-shirt with AYPA logo.',
-          price: 24.99,
-          category: 'TShirt',
-          brand: 'AYPA',
-          stock: 50,
-          imageUrls: ['https://source.unsplash.com/random?tshirt'],
-          sizes: ['S', 'M', 'L', 'XL'],
-          colors: ['Black', 'White', 'Navy'],
-          featured: true,
-          ratings: [{ rating: 4.5 }]
-        },
-        {
-          _id: '2',
-          name: 'AYPA Premium Polo',
-          description: 'Premium quality polo shirt for formal occasions.',
-          price: 39.99,
-          category: 'TShirt',
-          brand: 'AYPA Premium',
-          stock: 25,
-          imageUrls: ['https://source.unsplash.com/random?polo'],
-          sizes: ['M', 'L', 'XL'],
-          colors: ['Blue', 'Black'],
-          featured: false,
-          ratings: [{ rating: 4.8 }]
-        },
-        {
-          _id: '3',
-          name: 'Classic Lanyard',
-          description: 'Simple lanyard for ID cards and keys.',
-          price: 7.99,
-          category: 'IDLaces',
-          brand: 'AYPA',
-          stock: 120,
-          imageUrls: ['https://source.unsplash.com/random?lanyard'],
-          sizes: ['One Size'],
-          colors: ['Red', 'Blue', 'Green', 'Black'],
-          featured: true,
-          ratings: [{ rating: 4.2 }]
-        },
-        {
-          _id: '4',
-          name: 'Black ID Lace',
-          description: 'Professional black ID lace suitable for office use.',
-          price: 12.99,
-          category: 'IDLaces',
-          brand: 'AYPA',
-          stock: 8,
-          imageUrls: ['https://source.unsplash.com/random?lanyard,black'],
-          sizes: ['One Size'],
-          colors: ['Black'],
-          featured: false,
-          ratings: [{ rating: 4.7 }]
-        },
-        {
-          _id: '5',
-          name: 'Premium Hoodie',
-          description: 'Warm, comfortable hoodie available in multiple colors.',
-          price: 49.99,
-          category: 'TShirt',
-          brand: 'AYPA Premium',
-          stock: 0,
-          imageUrls: ['https://source.unsplash.com/random?hoodie'],
-          sizes: ['S', 'M', 'L', 'XL'],
-          colors: ['Black', 'Gray', 'Navy'],
-          featured: true,
-          ratings: [{ rating: 4.9 }]
-        }
       ]);
     } finally {
       setLoading(false);
@@ -286,6 +229,13 @@ const Inventory = () => {
     }
   ];
 
+  // Debug helper to ensure image URLs are correctly formatted
+  const getDebugProductImage = (product, index = 0) => {
+    const imageUrl = getProductImageUrl(product, index);
+    console.log(`Debug: Image for ${product.name}:`, imageUrl);
+    return imageUrl;
+  };
+
   return (
     <Box>
       {/* Page Header */}
@@ -360,7 +310,7 @@ const Inventory = () => {
               <TableRow>
                 <TableCell>Product</TableCell>
                 <TableCell>Category</TableCell>
-                <TableCell align="right">Price ($)</TableCell>
+                <TableCell align="right">Price</TableCell>
                 <TableCell align="right">Stock</TableCell>
                 <TableCell align="center">Status</TableCell>
                 <TableCell align="center">Actions</TableCell>
@@ -387,33 +337,28 @@ const Inventory = () => {
                 displayedProducts.map((product) => (
                   <TableRow key={product._id} hover>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {product.imageUrls && product.imageUrls.length > 0 ? (
-                          <Avatar 
-                            src={product.imageUrls[0]} 
-                            alt={product.name}
-                            variant="rounded"
-                            sx={{ width: 40, height: 40 }}
-                          />
-                        ) : (
-                          <Avatar 
-                            src={PRODUCT_PLACEHOLDER}
-                            variant="rounded"
-                            sx={{ width: 40, height: 40, bgcolor: 'grey.200' }}
-                          />
-                        )}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar 
+                          variant="rounded" 
+                          sx={{ width: 50, height: 50, mr: 2 }}
+                          src={getDebugProductImage(product, 0)}
+                          alt={product.name}
+                          onError={handleImageError(defaultProductImage)}
+                        />
                         <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
                             {product.name}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 300 }}>
-                            {product.description}
+                          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 240 }}>
+                            {product.description && product.description.length > 60
+                              ? `${product.description.substring(0, 60)}...`
+                              : product.description}
                           </Typography>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell align="right">${product.price.toFixed(2)}</TableCell>
+                    <TableCell align="right">{formatCurrency(product.price)}</TableCell>
                     <TableCell align="right">{product.stock}</TableCell>
                     <TableCell align="center">
                       {product.stock === 0 ? (

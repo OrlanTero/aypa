@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
+const path = require('path');
 // Import routes
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -37,8 +37,13 @@ app.use((req, res, next) => {
 // Handle preflight OPTIONS requests
 app.options('*', cors(corsOptions));
 
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+
 // Middleware
 app.use(express.json({ limit: '10mb' }));
+
+
 
 // Set default headers for all responses
 app.use((req, res, next) => {

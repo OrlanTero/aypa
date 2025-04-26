@@ -36,6 +36,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
 import { formatCurrency } from '../utils/formatters';
+import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
 
 const categories = ['All', 'TShirt', 'IDLaces', 'Accessories', 'Other'];
@@ -453,119 +454,89 @@ const ProductList = () => {
             <>
               <Grid container spacing={3}>
                 {paginatedProducts.map((product) => (
-                  <Grid item key={product._id} xs={12} sm={6} md={4}>
+                  <Grid item xs={12} sm={6} md={4} key={product._id}>
                     <Card 
                       sx={{ 
                         height: '100%', 
                         display: 'flex', 
                         flexDirection: 'column',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        transition: 'all 0.3s ease',
                         '&:hover': {
-                          transform: 'translateY(-5px)',
-                          boxShadow: 6,
-                        },
+                          transform: 'translateY(-8px)',
+                          boxShadow: (theme) => theme.shadows[4],
+                        }
                       }}
                     >
                       <CardMedia
-                        component={Link}
-                        to={`/products/${product._id}`}
-                        sx={{ 
-                          height: 240, 
-                          backgroundSize: 'cover',
-                          textDecoration: 'none',
-                        }}
-                        image={product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : defaultProductImage}
-                        title={product.name}
+                        component="img"
+                        height="200"
+                        image={getProductImageUrl(product, 0)}
+                        alt={product.name}
+                        sx={{ objectFit: 'contain', p: 2, bgcolor: 'background.paper' }}
+                        onError={handleImageError(defaultProductImage)}
+                        onClick={() => navigate(`/products/${product._id}`)}
+                        style={{ cursor: 'pointer' }}
                       />
-                      {product.stock === 0 && (
-                        <Box sx={{ 
-                          position: 'absolute', 
-                          top: 10, 
-                          right: 10, 
-                          bgcolor: 'error.main', 
-                          color: 'white', 
-                          px: 1, 
-                          py: 0.5,
-                          borderRadius: 1
-                        }}>
-                          Out of Stock
-                        </Box>
-                      )}
                       <CardContent sx={{ flexGrow: 1 }}>
-                        <Typography gutterBottom variant="h6" component="h2">
+                        <Typography 
+                          gutterBottom 
+                          variant="h6" 
+                          component="h2" 
+                          onClick={() => navigate(`/products/${product._id}`)}
+                          sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+                        >
                           {product.name}
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            mb: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                        >
-                          {product.description}
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {product.description && product.description.length > 75
+                            ? `${product.description.substring(0, 75)}...`
+                            : product.description}
                         </Typography>
-                        
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                           <Rating
                             value={getAverageRating(product.ratings)}
-                            precision={0.1}
+                            precision={0.5}
                             size="small"
                             readOnly
                           />
-                          <Typography variant="body2" sx={{ ml: 1 }}>
-                            {getAverageRating(product.ratings).toFixed(1)}
+                          <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                            ({product.ratings ? product.ratings.length : 0})
                           </Typography>
                         </Box>
-                        
-                        {product.colors && product.colors.length > 0 && (
-                          <Stack 
-                            direction="row" 
-                            spacing={0.5} 
-                            sx={{ mb: 1, flexWrap: 'wrap' }}
-                          >
-                            {product.colors.slice(0, 3).map((color) => (
-                              <Chip
-                                key={color}
-                                label={color}
-                                size="small"
-                                variant="outlined"
-                                sx={{ mb: 0.5 }}
-                              />
+                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                          {formatCurrency(product.price)}
+                        </Typography>
+                        {product.sizes && product.sizes.length > 0 && (
+                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {product.sizes.slice(0, 4).map((size) => (
+                              <Chip key={size} label={size} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} />
                             ))}
-                            {product.colors.length > 3 && (
-                              <Chip
-                                label={`+${product.colors.length - 3}`}
-                                size="small"
-                                variant="outlined"
-                                sx={{ mb: 0.5 }}
-                              />
+                            {product.sizes.length > 4 && (
+                              <Chip label={`+${product.sizes.length - 4}`} size="small" variant="outlined" />
                             )}
-                          </Stack>
+                          </Box>
                         )}
-                        
-                        <Divider sx={{ mb: 2 }} />
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="h6" color="primary">
-                            {formatCurrency(product.price)}
-                          </Typography>
-                          <Button
-                            size="small"
-                            color="primary"
-                            variant="contained"
-                            startIcon={<CartIcon />}
-                            onClick={() => handleAddToCart(product)}
-                            disabled={product.stock === 0}
-                          >
-                            Add to Cart
-                          </Button>
-                        </Box>
                       </CardContent>
+                      <Divider />
+                      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
+                        <Button 
+                          variant="outlined" 
+                          size="small" 
+                          component={Link} 
+                          to={`/products/${product._id}`}
+                        >
+                          Details
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={product.stock === 0}
+                          onClick={() => handleAddToCart(product)}
+                          startIcon={<CartIcon />}
+                        >
+                          {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                        </Button>
+                      </Box>
                     </Card>
                   </Grid>
                 ))}

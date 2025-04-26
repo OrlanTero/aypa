@@ -29,6 +29,8 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon
 } from '@mui/icons-material';
+import { styled, useTheme } from '@mui/material/styles';
+import { getUserAvatarUrl } from '../../utils/imageUtils';
 
 import { AuthContext } from '../../context/AuthContext';
 
@@ -164,8 +166,10 @@ const AdminLayout = ({ children }) => {
               aria-haspopup="true"
               color="inherit"
             >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                {user?.name?.charAt(0) || 'A'}
+              <Avatar 
+                sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}
+                src={getUserAvatarUrl(user)}
+              >
               </Avatar>
             </IconButton>
           </Tooltip>

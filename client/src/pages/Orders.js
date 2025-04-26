@@ -40,6 +40,8 @@ import {
 } from '@mui/icons-material';
 import { ordersAPI } from '../utils/api';
 import { formatDate, formatCurrency } from '../utils/format';
+import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
+import defaultProductImage from '../assets/default-product.jpg';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -299,35 +301,31 @@ const Orders = () => {
                       <Typography variant="body2" color="text.secondary">
                         Items: {order.items.length} item(s)
                       </Typography>
-                      {/* Product Image Thumbnails */}
-                      <AvatarGroup max={4} sx={{ my: 1 }}>
-                        {order.items.map((item, idx) => (
-                          item.product && item.product.imageUrls && item.product.imageUrls[0] ? (
+                      {/* Order Items Preview */}
+                      <Box sx={{ mt: 2, mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Items:
+                        </Typography>
+                        <AvatarGroup 
+                          max={4}
+                          sx={{ 
+                            justifyContent: 'flex-start',
+                            '& .MuiAvatar-root': { width: 40, height: 40, border: '1px solid #eee' }
+                          }}
+                        >
+                          {order.items.map((item, idx) => (
                             <Avatar 
-                              key={idx}
-                              src={item.product.imageUrls[0]} 
-                              alt={item.product.name}
-                              sx={{ width: 40, height: 40 }}
+                              key={idx} 
+                              alt={item.product?.name || 'Product'}
+                              src={item.product?.imageUrls?.[0] ? getProductImageUrl(item.product, 0) : defaultProductImage}
+                              variant="rounded"
+                              imgProps={{
+                                onError: handleImageError(defaultProductImage)
+                              }}
                             />
-                          ) : (
-                            <Avatar 
-                              key={idx}
-                              sx={{ width: 40, height: 40, bgcolor: 'primary.light' }}
-                            >
-                              <InventoryIcon sx={{ fontSize: 20 }} />
-                            </Avatar>
-                          )
-                        ))}
-                      </AvatarGroup>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {order.items.slice(0, 2).map((item, idx) => (
-                          <Box component="span" key={idx} sx={{ display: 'inline-block', mr: 1 }}>
-                            {idx > 0 && ", "}
-                            {item.product ? item.product.name : "Product no longer available"} ({item.quantity})
-                          </Box>
-                        ))}
-                        {order.items.length > 2 && `, +${order.items.length - 2} more`}
-                      </Typography>
+                          ))}
+                        </AvatarGroup>
+                      </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         Shipping to: {order.shippingAddress.city}, {order.shippingAddress.state}, {order.shippingAddress.country}
                       </Typography>

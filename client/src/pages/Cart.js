@@ -127,7 +127,7 @@ const Cart = () => {
                       height: { xs: 200, sm: 150 }, 
                       objectFit: 'cover' 
                     }}
-                    image={item.product?.imageUrl || defaultProductImage}
+                    src={item.product?.imageUrls?.[0] || item.product?.imageUrl || defaultProductImage}
                     alt={item.product?.name}
                   />
                   <CardContent sx={{ flex: '1 0 auto', p: 2 }}>

@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { PRODUCT_ENDPOINTS } from '../../constants/apiConfig';
+import { getImageUrl } from '../../utils/imageUtils';
 import defaultProductImage from '../../assets/default-product.jpg';
 
 // Available product categories
@@ -60,8 +61,8 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
   const [newColor, setNewColor] = useState('');
   
   // Image upload state
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Loading and error states
@@ -83,9 +84,18 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
         colors: product.colors || []
       });
       
-      // Set image preview if available
+      // Set image previews if available
       if (product.imageUrls && product.imageUrls.length > 0) {
-        setImagePreview(product.imageUrls[0]);
+        console.log('Original image URLs:', product.imageUrls);
+        
+        // Convert relative paths to full URLs
+        const fullImageUrls = product.imageUrls.map(url => {
+          const fullUrl = getImageUrl(url);
+          console.log(`Converted ${url} to ${fullUrl}`);
+          return fullUrl;
+        });
+        
+        setImagePreviews(fullImageUrls);
       }
     }
   }, [product, isEditMode]);
@@ -144,48 +154,32 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
   };
   
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) return;
+    
+    // Limit to 5 images total
+    const newFiles = files.slice(0, 5 - images.length);
+    
+    // Update images array
+    setImages(prevImages => [...prevImages, ...newFiles]);
+    
+    // Generate and update previews
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews(prevPreviews => [...prevPreviews, ...newPreviews]);
   };
   
-  const uploadImage = async () => {
-    if (!imageFile) return null;
+  const handleRemoveImage = (index) => {
+    // Remove image and its preview
+    setImages(prevImages => prevImages.filter((_, i) => i !== index));
     
-    // Simulate upload progress
-    const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 200);
-
-    try {
-      // Client-side approach - use object URL or base64 for demo
-      // In production, you would upload to server with:
-      // const formData = new FormData();
-      // formData.append('image', imageFile);
-      // const response = await axios.post(PRODUCT_ENDPOINTS.UPLOAD_IMAGE, formData, {...});
-      
-      // Wait for simulated progress
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Clear the interval if it's still running
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      // Use a local object URL as fallback when server upload not available
-      return URL.createObjectURL(imageFile);
-    } catch (err) {
-      clearInterval(progressInterval);
-      console.error('Error handling image:', err);
-      throw new Error('Failed to process image');
-    }
+    // Revoke object URL to avoid memory leaks
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImagePreviews(prevPreviews => prevPreviews.filter((_, i) => i !== index));
+  };
+  
+  const handleRemoveExistingImage = (imageUrl) => {
+    setImagePreviews(prevPreviews => prevPreviews.filter(url => url !== imageUrl));
   };
   
   const handleSubmit = async (e) => {
@@ -202,42 +196,72 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
         return;
       }
       
-      // Create product data object
-      const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock)
-      };
+      // Create FormData object for multipart/form-data submission
+      const productFormData = new FormData();
       
-      // Handle image - client-side approach for demo
-      if (imageFile) {
-        try {
-          const imageUrl = await uploadImage();
-          if (imageUrl) {
-            // In a real application with server storage, the URL would be saved to the database
-            // For our client-side approach, we'll use the URL directly
-            productData.imageUrls = [imageUrl];
-          }
-        } catch (err) {
-          // If image processing fails, we can still proceed with product creation/update
-          console.warn('Image processing failed, continuing without image', err);
+      // Add basic product data
+      Object.keys(formData).forEach(key => {
+        if (key === 'sizes' || key === 'colors') {
+          // Convert arrays to JSON strings
+          productFormData.append(key, JSON.stringify(formData[key]));
+        } else {
+          productFormData.append(key, formData[key]);
         }
-      } else if (isEditMode && product.imageUrls) {
-        // Keep existing images when editing if no new image is uploaded
-        productData.imageUrls = product.imageUrls;
+      });
+      
+      // Add existing images that haven't been removed
+      if (isEditMode && product.imageUrls) {
+        // Filter to get original server paths of remaining images
+        const existingImagePaths = product.imageUrls.filter(url => {
+          // Check if the image URL is still in the previews (by filename)
+          return imagePreviews.some(preview => {
+            const previewFilename = preview.split('/').pop();
+            const urlFilename = url.split('/').pop();
+            return previewFilename === urlFilename;
+          });
+        });
+        
+        productFormData.append('existingImages', JSON.stringify(existingImagePaths));
       }
+      
+      // Add new images
+      images.forEach(image => {
+        productFormData.append('images', image);
+      });
       
       // Submit to API
       let response;
       if (isEditMode) {
         response = await axios.put(
           PRODUCT_ENDPOINTS.UPDATE(product._id),
-          productData
+          productFormData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percentCompleted);
+            }
+          }
         );
       } else {
         response = await axios.post(
           PRODUCT_ENDPOINTS.CREATE,
-          productData
+          productFormData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percentCompleted);
+            }
+          }
         );
       }
       
@@ -286,54 +310,99 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                   minHeight: 200
                 }}
               >
-                {imagePreview ? (
-                  <Box sx={{ position: 'relative', width: '100%', height: 200, mb: 2 }}>
-                    <img 
-                      src={imagePreview}
-                      alt="Product preview"
-                      style={{ 
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        border: '1px solid #eee',
-                        borderRadius: '4px',
-                        padding: '8px',
-                        backgroundColor: '#f9f9f9'
-                      }} 
-                      onError={(e) => {
-                        console.warn('Image preview failed to load, using default image');
-                        e.target.onerror = null;
-                        e.target.src = defaultProductImage || 'https://via.placeholder.com/300x300?text=Product';
-                      }}
-                    />
-                    <IconButton
-                      size="small"
-                      sx={{ position: 'absolute', top: 0, right: 0 }}
-                      onClick={() => {
-                        setImageFile(null);
-                        setImagePreview('');
-                      }}
-                    >
-                      <CloseIcon />
-                    </IconButton>
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    No image selected
-                  </Typography>
-                )}
+                <Typography variant="subtitle1" gutterBottom>
+                  Product Images ({imagePreviews.length}/5)
+                </Typography>
+                
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 1,
+                  justifyContent: 'center',
+                  mb: 2 
+                }}>
+                  {imagePreviews.length > 0 ? (
+                    imagePreviews.map((preview, index) => (
+                      <Box 
+                        key={index} 
+                        sx={{ 
+                          position: 'relative',
+                          width: 80,
+                          height: 80
+                        }}
+                      >
+                        <img 
+                          src={preview}
+                          alt={`Product preview ${index + 1}`}
+                          style={{ 
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            border: '1px solid #eee',
+                            borderRadius: '4px',
+                            padding: '4px',
+                            backgroundColor: '#f9f9f9'
+                          }} 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = defaultProductImage;
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          sx={{ 
+                            position: 'absolute', 
+                            top: -8, 
+                            right: -8,
+                            bgcolor: 'rgba(255,255,255,0.8)',
+                            '&:hover': {
+                              bgcolor: 'rgba(255,255,255,0.9)',
+                            }
+                          }}
+                          onClick={() => {
+                            // Check if it's an existing image or a new one
+                            if (isEditMode && product.imageUrls) {
+                              // Check if this is an existing image (compare base filenames)
+                              const isExistingImage = product.imageUrls.some(url => {
+                                const previewFilename = preview.split('/').pop();
+                                const urlFilename = url.split('/').pop();
+                                return previewFilename === urlFilename;
+                              });
+                              
+                              if (isExistingImage) {
+                                handleRemoveExistingImage(preview);
+                              } else {
+                                handleRemoveImage(index);
+                              }
+                            } else {
+                              handleRemoveImage(index);
+                            }
+                          }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No images selected
+                    </Typography>
+                  )}
+                </Box>
                 
                 <Button
                   component="label"
                   variant="outlined"
                   startIcon={<CloudUploadIcon />}
                   sx={{ mt: 1 }}
+                  disabled={imagePreviews.length >= 5}
                 >
-                  Upload Image
+                  Upload Images
                   <input
                     type="file"
                     accept="image/*"
                     hidden
+                    multiple
                     onChange={handleImageChange}
                   />
                 </Button>
@@ -378,7 +447,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                     value={formData.price}
                     onChange={handleNumberInput}
                     InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      startAdornment: <InputAdornment position="start">₱</InputAdornment>,
                     }}
                   />
                 </Grid>

@@ -58,7 +58,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { ORDER_ENDPOINTS } from '../../constants/apiConfig';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 
 // Order status color mapping
 const getStatusColor = (status) => {
@@ -97,19 +97,6 @@ const getVerificationStatusColor = (status) => {
     'rejected': 'error'
   };
   return statusMap[status.toLowerCase()] || 'default';
-};
-
-// Format date to readable string
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 // Delivery service options

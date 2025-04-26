@@ -43,6 +43,8 @@ import {
 } from '@mui/icons-material';
 import { ordersAPI } from '../utils/api';
 import { formatDate, formatCurrency } from '../utils/format';
+import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
+import defaultProductImage from '../assets/default-product.jpg';
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -316,19 +318,16 @@ const OrderDetail = () => {
       <Grid container spacing={4}>
         {/* Order Items */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 0, overflow: 'hidden' }}>
-            <Box sx={{ p: 2, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="h6">
-                Order Items
-              </Typography>
-            </Box>
-            
+          <Paper sx={{ p: 3, mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Order Items
+            </Typography>
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'background.default' }}>
+                  <TableRow>
                     <TableCell>Product</TableCell>
-                    <TableCell align="center">Price</TableCell>
+                    <TableCell>Price</TableCell>
                     <TableCell align="center">Quantity</TableCell>
                     <TableCell align="right">Total</TableCell>
                   </TableRow>
@@ -338,77 +337,55 @@ const OrderDetail = () => {
                     <TableRow key={index}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Box sx={{ mr: 2 }}>
-                            {item.product && item.product.imageUrls && item.product.imageUrls[0] ? (
-                              <Avatar 
-                                variant="rounded" 
-                                src={item.product.imageUrls[0]} 
-                                alt={item.product.name || 'Product Image'}
-                                sx={{ width: 60, height: 60 }}
-                              />
-                            ) : (
-                              <Avatar 
-                                variant="rounded" 
-                                sx={{ width: 60, height: 60, bgcolor: 'primary.light' }}
-                              >
-                                <InventoryIcon />
-                              </Avatar>
-                            )}
-                          </Box>
+                          <Avatar 
+                            variant="rounded"
+                            src={item.product?.imageUrls?.[0] ? getProductImageUrl(item.product, 0) : defaultProductImage}
+                            alt={item.product?.name || 'Product Image'} 
+                            sx={{ width: 60, height: 60, mr: 2, objectFit: 'contain' }}
+                            imgProps={{
+                              onError: handleImageError(defaultProductImage)
+                            }}
+                          />
                           <Box>
-                            <Typography 
-                              variant="body1" 
-                              fontWeight="medium"
-                              component={item.product && item.product._id ? RouterLink : 'span'}
-                              to={item.product && item.product._id ? `/products/${item.product._id}` : undefined}
-                              sx={item.product && item.product._id ? {
-                                color: 'primary.main',
-                                textDecoration: 'none',
-                                '&:hover': {
-                                  textDecoration: 'underline'
-                                }
-                              } : {}}
-                            >
-                              {item.product ? item.product.name : 'Product No Longer Available'}
+                            <Typography variant="body1">
+                              {item.product?.name || 'Product no longer available'}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {item.color && `Color: ${item.color}`}
-                              {item.color && item.size && ' | '}
-                              {item.size && `Size: ${item.size}`}
-                              {(item.color || item.size) && item.product?.category && ' | '}
-                              {item.product?.category && `Category: ${item.product.category}`}
-                            </Typography>
-                            {item.product?.brand && (
-                              <Typography variant="body2" color="text.secondary">
-                                Brand: {item.product.brand}
-                              </Typography>
-                            )}
+                            {item.color && <Typography variant="body2" color="text.secondary">Color: {item.color}</Typography>}
+                            {item.size && <Typography variant="body2" color="text.secondary">Size: {item.size}</Typography>}
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell align="center">
-                        {formatCurrency(item.price)}
-                      </TableCell>
-                      <TableCell align="center">
-                        {item.quantity}
-                      </TableCell>
-                      <TableCell align="right">
-                        {formatCurrency(item.price * item.quantity)}
-                      </TableCell>
+                      <TableCell>{formatCurrency(item.price)}</TableCell>
+                      <TableCell align="center">{item.quantity}</TableCell>
+                      <TableCell align="right">{formatCurrency(item.price * item.quantity)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
                     <TableCell colSpan={2} />
-                    <TableCell align="right">
-                      <Typography variant="body1" fontWeight="bold">
-                        Total
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body1" fontWeight="bold">
-                        {formatCurrency(order.totalAmount)}
-                      </Typography>
-                    </TableCell>
+                    <TableCell align="right"><strong>Subtotal:</strong></TableCell>
+                    <TableCell align="right">{formatCurrency(order.subtotal || 0)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={2} />
+                    <TableCell align="right"><strong>Shipping:</strong></TableCell>
+                    <TableCell align="right">{formatCurrency(order.shippingFee || 0)}</TableCell>
+                  </TableRow>
+                  {order.discount > 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} />
+                      <TableCell align="right"><strong>Discount:</strong></TableCell>
+                      <TableCell align="right">-{formatCurrency(order.discount)}</TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell colSpan={2} />
+                    <TableCell align="right"><strong>Tax:</strong></TableCell>
+                    <TableCell align="right">{formatCurrency(order.tax || 0)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={2} />
+                    <TableCell align="right"><Typography variant="h6">Total:</Typography></TableCell>
+                    <TableCell align="right"><Typography variant="h6">{formatCurrency(order.totalAmount)}</Typography></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

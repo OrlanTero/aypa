@@ -21,10 +21,10 @@ import {
   Remove as RemoveIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-
-// Import the actual CartContext
 import { CartContext } from '../context/CartContext';
+import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
+import { formatCurrency } from '../utils/formatters';
 
 const CartMenu = ({ anchorEl, open, onClose }) => {
   const navigate = useNavigate();
@@ -128,10 +128,13 @@ const CartMenu = ({ anchorEl, open, onClose }) => {
                 <ListItem alignItems="flex-start" sx={{ py: 2, px: 0 }}>
                   <ListItemAvatar>
                     <Avatar 
-                        src={item.product?.imageUrl || defaultProductImage} 
-                      alt={item.product?.name} 
+                      src={item.product ? getProductImageUrl(item.product, 0) : defaultProductImage} 
+                      alt={item.product?.name || 'Product'} 
                       variant="rounded"
                       sx={{ width: 60, height: 60 }}
+                      imgProps={{
+                        onError: handleImageError(defaultProductImage)
+                      }}
                     />
                   </ListItemAvatar>
                   <ListItemText
@@ -143,7 +146,7 @@ const CartMenu = ({ anchorEl, open, onClose }) => {
                           variant="body2"
                           color="text.primary"
                         >
-                          ${item.price.toFixed(2)}
+                          {formatCurrency(item.price)}
                         </Typography>
                         {item.size && (
                           <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>

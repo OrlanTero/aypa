@@ -35,6 +35,8 @@ import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
 import CartMenu from './CartMenu';
 import SearchBar from './SearchBar';
+import { getUserAvatarUrl } from '../utils/imageUtils';
+import defaultUserAvatar from '../assets/default-avatar.png';
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
@@ -286,6 +288,7 @@ const Header = () => {
                         color: 'white',
                         fontWeight: 'bold'
                       }}
+                      src={getUserAvatarUrl(user)}
                     >
                       {user?.name?.charAt(0) || 'U'}
                     </Avatar>

@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Order = require('../models/Order');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -393,6 +394,139 @@ router.get('/:id', [auth, admin], async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'User not found' });
     }
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   GET api/users/admin/dashboard-stats
+// @desc    Get dashboard statistics for admin
+// @access  Private/Admin
+router.get('/admin/dashboard-stats', [auth, admin], async (req, res) => {
+  try {
+    // Get total customers (all users except admins)
+    const totalCustomers = await User.countDocuments({ role: { $ne: 'admin' } });
+    
+    // Get total products
+    const totalProducts = await Product.countDocuments();
+    
+    // Get total orders and calculate revenue
+    const orders = await Order.find().populate('items.product');
+    const totalOrders = orders.length;
+    
+    // Calculate total revenue and average order value
+    let totalRevenue = 0;
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        totalRevenue += item.quantity * item.price;
+      });
+    });
+    
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    
+    // Get top selling products
+    const productSales = {};
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const productId = item.product._id.toString();
+        if (!productSales[productId]) {
+          productSales[productId] = {
+            id: productId,
+            name: item.product.name,
+            sales: 0,
+            revenue: 0
+          };
+        }
+        productSales[productId].sales += item.quantity;
+        productSales[productId].revenue += item.quantity * item.price;
+      });
+    });
+    
+    const topSellingProducts = Object.values(productSales)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5);
+    
+    // Get recent orders (last 5)
+    const recentOrders = await Order.find()
+      .populate('user', 'name')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+    
+    const formattedRecentOrders = recentOrders.map(order => {
+      let orderTotal = 0;
+      order.items.forEach(item => {
+        orderTotal += item.quantity * item.price;
+      });
+      
+      return {
+        id: order._id.toString(),
+        customer: order.user.name,
+        date: order.createdAt,
+        amount: orderTotal,
+        status: order.status
+      };
+    });
+    
+    // Calculate monthly sales for the past year
+    const monthlySales = [];
+    const currentDate = new Date();
+    
+    for (let i = 0; i < 12; i++) {
+      const month = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
+      
+      const monthOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= month && orderDate <= monthEnd;
+      });
+      
+      let monthRevenue = 0;
+      monthOrders.forEach(order => {
+        order.items.forEach(item => {
+          monthRevenue += item.quantity * item.price;
+        });
+      });
+      
+      monthlySales.unshift({
+        month: month.toLocaleString('default', { month: 'short' }),
+        sales: monthRevenue
+      });
+    }
+    
+    // Get product categories breakdown
+    const products = await Product.find();
+    const categories = {};
+    
+    products.forEach(product => {
+      if (!categories[product.category]) {
+        categories[product.category] = 0;
+      }
+      categories[product.category]++;
+    });
+    
+    const productCategories = Object.keys(categories).map(category => {
+      return {
+        name: category,
+        count: categories[category],
+        percentage: (categories[category] / totalProducts) * 100
+      };
+    });
+    
+    // Return dashboard stats
+    res.json({
+      totalRevenue,
+      totalOrders,
+      totalProducts,
+      averageOrderValue,
+      totalCustomers,
+      topSellingProducts,
+      recentOrders: formattedRecentOrders,
+      monthlySales,
+      productCategories
+    });
+    
+  } catch (err) {
+    console.error('Error fetching dashboard stats:', err.message);
     res.status(500).send('Server error');
   }
 });

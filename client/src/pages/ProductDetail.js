@@ -34,29 +34,10 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
-
-// Mock product data for development
-const mockProduct = {
-  _id: '1',
-  name: 'Basic White T-Shirt',
-  description: 'A comfortable white t-shirt made from premium cotton. Perfect for everyday wear, this t-shirt offers both comfort and style. The breathable fabric ensures you stay cool throughout the day.',
-  price: 29.99,
-  category: 'TShirt',
-  brand: 'AYPA',
-  stock: 150,
-  imageUrls: [
-    'https://source.unsplash.com/random?tshirt,white,front',
-    'https://source.unsplash.com/random?tshirt,white,back',
-    'https://source.unsplash.com/random?tshirt,white,detail'
-  ],
-  sizes: ['S', 'M', 'L', 'XL'],
-  colors: ['White'],
-  featured: true,
-  ratings: [
-    { user: 'user1', rating: 4.5, review: 'Great quality and fits perfectly!', date: '2023-10-15' },
-    { user: 'user2', rating: 5, review: 'Excellent material, very comfortable.', date: '2023-10-10' }
-  ]
-};
+import { PRODUCT_ENDPOINTS } from '../constants/apiConfig';
+import defaultProductImage from '../assets/default-product.jpg';
+import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
+import { formatCurrency } from '../utils/formatters';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -80,24 +61,21 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        // Replace with real API call when available
-        // const res = await axios.get(`/api/products/${id}`);
-        // setProduct(res.data);
+        const response = await axios.get(PRODUCT_ENDPOINTS.DETAILS(id));
+        const productData = response.data;
+        setProduct(productData);
         
-        // Using mock data for now
-        setTimeout(() => {
-          setProduct(mockProduct);
-          if (mockProduct.colors.length > 0) {
-            setSelectedColor(mockProduct.colors[0]);
-          }
-          if (mockProduct.sizes.length > 0) {
-            setSelectedSize(mockProduct.sizes[0]);
-          }
-          setLoading(false);
-        }, 1000);
+        if (productData.colors && productData.colors.length > 0) {
+          setSelectedColor(productData.colors[0]);
+        }
+        if (productData.sizes && productData.sizes.length > 0) {
+          setSelectedSize(productData.sizes[0]);
+        }
+        
+        setLoading(false);
       } catch (err) {
-        setError('Error loading product details');
-        console.error('Product detail error:', err);
+        console.error('Error fetching product details:', err);
+        setError('Failed to load product details. Please try again later.');
         setLoading(false);
       }
     };
@@ -135,14 +113,14 @@ const ProductDetail = () => {
       return;
     }
 
-    if (!selectedSize) {
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       setSnackbarMessage('Please select a size');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
       return;
     }
 
-    if (!selectedColor) {
+    if (product.colors && product.colors.length > 0 && !selectedColor) {
       setSnackbarMessage('Please select a color');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -157,22 +135,23 @@ const ProductDetail = () => {
       return;
     }
 
-    const result = await addToCart(product, quantity, selectedSize, selectedColor);
-    
-    if (result && result.error) {
-      // Handle stock error from server
-      setSnackbarMessage(result.message);
+    try {
+      await addToCart(
+        product._id,
+        quantity,
+        product.price,
+        selectedSize,
+        selectedColor
+      );
+      
+      setSnackbarMessage(`${product.name} added to cart!`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      setSnackbarMessage('Failed to add item to cart');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
-      
-      // If available stock info was returned, update quantity to match available stock
-      if (result.availableStock) {
-        setQuantity(result.availableStock);
-      }
-    } else {
-    setSnackbarMessage('Product added to cart!');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
     }
   };
 
@@ -219,22 +198,24 @@ const ProductDetail = () => {
           <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
             <Box
               component="img"
-              src={product.imageUrls[selectedImage]}
+              src={getProductImageUrl(product, selectedImage)}
               alt={product.name}
               sx={{
                 width: '100%',
                 height: 'auto',
+                maxHeight: 400,
                 objectFit: 'contain',
                 borderRadius: 1,
                 mb: 2
               }}
+              onError={handleImageError(defaultProductImage)}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-              {product.imageUrls.map((url, index) => (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1 }}>
+              {product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls.map((url, index) => (
                 <Box
                   key={index}
                   component="img"
-                  src={url}
+                  src={getProductImageUrl(product, index)}
                   sx={{
                     width: 80,
                     height: 80,
@@ -244,8 +225,20 @@ const ProductDetail = () => {
                     borderRadius: 1
                   }}
                   onClick={() => setSelectedImage(index)}
+                  onError={handleImageError(defaultProductImage)}
                 />
-              ))}
+              )) : (
+                <Box
+                  component="img"
+                  src={defaultProductImage}
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    objectFit: 'cover',
+                    borderRadius: 1
+                  }}
+                />
+              )}
             </Box>
           </Paper>
         </Grid>
@@ -264,12 +257,12 @@ const ProductDetail = () => {
                 readOnly
               />
               <Typography variant="body2" sx={{ ml: 1 }}>
-                ({product.ratings.length} reviews)
+                ({product.ratings?.length || 0} reviews)
               </Typography>
             </Box>
             
             <Typography variant="h5" color="primary" sx={{ mb: 2 }}>
-              ${product.price.toFixed(2)}
+              {formatCurrency(product.price)}
             </Typography>
             
             <Divider sx={{ mb: 2 }} />
@@ -279,9 +272,11 @@ const ProductDetail = () => {
             </Typography>
             
             <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Brand: <Chip label={product.brand} size="small" />
-              </Typography>
+              {product.brand && (
+                <Typography variant="subtitle1" gutterBottom>
+                  Brand: <Chip label={product.brand} size="small" />
+                </Typography>
+              )}
               <Typography variant="subtitle1" gutterBottom>
                 Category: <Chip label={product.category} size="small" />
               </Typography>
@@ -299,7 +294,7 @@ const ProductDetail = () => {
             <Divider sx={{ mb: 2 }} />
             
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              {product.sizes.length > 0 && (
+              {product.sizes && product.sizes.length > 0 && (
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
                     <InputLabel id="size-select-label">Size</InputLabel>
@@ -320,7 +315,7 @@ const ProductDetail = () => {
                 </Grid>
               )}
               
-              {product.colors.length > 0 && (
+              {product.colors && product.colors.length > 0 && (
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
                     <InputLabel id="color-select-label">Color</InputLabel>
@@ -358,13 +353,13 @@ const ProductDetail = () => {
                   type="number"
                   value={quantity}
                   onChange={handleQuantityChange}
-                  InputProps={{ inputProps: { min: 1, max: 100 } }}
+                  InputProps={{ inputProps: { min: 1, max: product.stock } }}
                   sx={{ width: 60, mx: 1 }}
                   size="small"
                 />
                 <IconButton
                   onClick={incrementQuantity}
-                  disabled={quantity >= 100}
+                  disabled={quantity >= product.stock}
                   size="small"
                 >
                   <AddIcon />
@@ -409,8 +404,6 @@ const ProductDetail = () => {
           {tabValue === 0 && (
             <Typography variant="body1">
               {product.description}
-              <br /><br />
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
             </Typography>
           )}
         </Box>
@@ -422,40 +415,24 @@ const ProductDetail = () => {
                 Customer Reviews
               </Typography>
               
-              {product.ratings.length === 0 ? (
-                <Typography>No reviews yet. Be the first to leave a review!</Typography>
-              ) : (
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Rating
-                      value={getAverageRating(product.ratings)}
-                      precision={0.1}
-                      readOnly
-                    />
-                    <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                      {getAverageRating(product.ratings).toFixed(1)} out of 5
-                    </Typography>
-                  </Box>
-                  
-                  {product.ratings.map((rating, index) => (
-                    <Card key={index} sx={{ mb: 2 }}>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="subtitle1">
-                            User
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {rating.date}
-                          </Typography>
-                        </Box>
-                        <Rating value={rating.rating} precision={0.5} readOnly size="small" />
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {rating.review}
+              {product.ratings && product.ratings.length > 0 ? (
+                product.ratings.map((review, index) => (
+                  <Card key={index} sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Rating value={review.rating} readOnly size="small" />
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(review.date).toLocaleDateString()}
                         </Typography>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Box>
+                      </Box>
+                      <Typography variant="body2">{review.review}</Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No reviews yet. Be the first to review this product!
+                </Typography>
               )}
             </Box>
           )}
@@ -463,32 +440,24 @@ const ProductDetail = () => {
         
         <Box role="tabpanel" hidden={tabValue !== 2} p={3}>
           {tabValue === 2 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Shipping Information
-              </Typography>
-              <Typography variant="body1" paragraph>
-                We ship to most countries worldwide. Standard shipping takes 3-7 business days, while express shipping takes 1-3 business days.
-              </Typography>
+            <Typography variant="body1">
+              <strong>Shipping Policy:</strong><br />
+              We offer free standard shipping on all orders over $50. Orders typically ship within 1-2 business days and delivery times vary based on location.<br /><br />
               
-              <Typography variant="h6" gutterBottom>
-                Return Policy
-              </Typography>
-              <Typography variant="body1">
-                If you're not satisfied with your purchase, you can return it within 30 days for a full refund. The product must be in its original condition and packaging.
-              </Typography>
-            </Box>
+              <strong>Return Policy:</strong><br />
+              We accept returns within 30 days of purchase. Items must be in original condition with tags attached. Please contact customer service to initiate a return.
+            </Typography>
           )}
         </Box>
       </Paper>
 
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

@@ -19,6 +19,8 @@ import {
 import { PhotoCamera, Save } from '@mui/icons-material';
 import { AuthContext } from '../../context/AuthContext';
 import { userAPI } from '../../utils/api';
+import { getUserAvatarUrl } from '../../utils/imageUtils';
+import defaultUserAvatar from '../../assets/default-avatar.png';
 
 const Profile = () => {
   const { user, updateUser } = useContext(AuthContext);
@@ -207,7 +209,7 @@ const Profile = () => {
                 alignItems: 'center'
               }}>
                 <Avatar
-                  src={avatarPreview || (user?.avatar && `${process.env.REACT_APP_API_URL}/${user.avatar}`)}
+                  src={avatarPreview || (user && getUserAvatarUrl(user))}
                   sx={{ 
                     width: 150, 
                     height: 150,
@@ -215,7 +217,6 @@ const Profile = () => {
                     boxShadow: 2
                   }}
                 >
-                  {user?.name?.charAt(0) || 'A'}
                 </Avatar>
                 <input
                   accept="image/*"

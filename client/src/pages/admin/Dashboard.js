@@ -1,72 +1,274 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Typography,
+  Grid,
+  Paper,
   Card,
   CardContent,
-  Grid,
-  Typography,
+  CardHeader,
+  Divider,
   CircularProgress,
   Alert,
-  Paper,
-  Divider
+  Button
 } from '@mui/material';
 import {
-  PeopleAlt as PeopleIcon,
+  AttachMoney as MoneyIcon,
+  ShoppingCart as CartIcon,
   Inventory as InventoryIcon,
-  Receipt as ReceiptIcon,
-  AttachMoney as MoneyIcon
+  TrendingUp as TrendingUpIcon,
+  Person as PersonIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
+import Chart from 'react-apexcharts';
+import { formatCurrency } from '../../utils/formatters';
+import { PRODUCT_ENDPOINTS, ORDER_ENDPOINTS, USER_ENDPOINTS } from '../../constants/apiConfig';
 
-// Mock data for when API is not yet connected
-const mockData = {
-  totalProducts: 48,
-  totalOrders: 124,
-  totalCustomers: 87,
-  totalRevenue: 15680,
-  recentOrders: [
-    { id: '1001', customer: 'John Doe', date: '2023-11-22', total: 129.99, status: 'delivered' },
-    { id: '1002', customer: 'Jane Smith', date: '2023-11-21', total: 89.50, status: 'shipped' },
-    { id: '1003', customer: 'Mike Johnson', date: '2023-11-20', total: 45.75, status: 'processing' }
-  ],
-  popularProducts: [
-    { id: '101', name: 'Classic White T-Shirt', sold: 32 },
-    { id: '105', name: 'Blue ID Lace', sold: 28 },
-    { id: '103', name: 'Black Hoodie', sold: 25 }
-  ]
-};
+// Custom styled components
+const StatsCard = styled(Card)(({ theme, color }) => ({
+  height: '100%',
+  backgroundColor: color ? color : theme.palette.background.paper,
+  boxShadow: theme.shadows[2],
+  '&:hover': {
+    boxShadow: theme.shadows[6],
+    transform: 'translateY(-4px)',
+    transition: 'all 0.3s'
+  }
+}));
+
+const IconBox = styled(Box)(({ theme, color }) => ({
+  backgroundColor: color ? color : theme.palette.primary.main,
+  color: theme.palette.common.white,
+  borderRadius: '50%',
+  width: 56,
+  height: 56,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: theme.shadows[3]
+}));
 
 const Dashboard = () => {
-  const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    averageOrderValue: 0,
+    totalCustomers: 0,
+    topSellingProducts: [],
+    recentOrders: [],
+    monthlySales: [],
+    productCategories: []
+  });
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch real data from APIs
+      const [productsResponse, ordersResponse, usersResponse] = await Promise.all([
+        axios.get(PRODUCT_ENDPOINTS.ALL),
+        axios.get(ORDER_ENDPOINTS.ALL),
+        axios.get(USER_ENDPOINTS.ALL)
+      ]);
+      
+      const products = productsResponse.data;
+      const orders = ordersResponse.data;
+      const users = usersResponse.data;
+      
+      // Calculate total revenue and average order value
+      const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+      const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+      
+      // Get top selling products
+      // In a real application, this would come from a dedicated API endpoint
+      // Here we're simulating it by aggregating order items
+      const productSales = {};
+      orders.forEach(order => {
+        if (order.items && order.items.length > 0) {
+          order.items.forEach(item => {
+            const productId = item.product?._id || (typeof item.product === 'string' ? item.product : 'unknown');
+            const productName = item.product?.name || 'Unknown Product';
+            
+            if (!productSales[productId]) {
+              productSales[productId] = {
+                id: productId,
+                name: productName,
+                sales: 0,
+                revenue: 0
+              };
+            }
+            
+            productSales[productId].sales += Number(item.quantity) || 0;
+            productSales[productId].revenue += Number(item.price) * Number(item.quantity) || 0;
+          });
+        }
+      });
+      
+      const topSellingProducts = Object.values(productSales)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+      
+      // Get recent orders
+      const recentOrders = orders
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5)
+        .map(order => ({
+          id: order._id,
+          customer: order.user?.name || 'Anonymous',
+          date: order.createdAt,
+          amount: order.totalAmount,
+          status: order.orderStatus || 'Pending'
+        }));
+      
+      // Calculate monthly sales
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlySalesMap = {};
+      
+      // Initialize all months with zero
+      monthNames.forEach(month => {
+        monthlySalesMap[month] = 0;
+      });
+      
+      // Aggregate order amounts by month
+      orders.forEach(order => {
+        if (order.createdAt) {
+          const date = new Date(order.createdAt);
+          const month = monthNames[date.getMonth()];
+          monthlySalesMap[month] += Number(order.totalAmount) || 0;
+        }
+      });
+      
+      const monthlySales = Object.entries(monthlySalesMap).map(([month, sales]) => ({
+        month,
+        sales
+      }));
+      
+      // Calculate product categories
+      const categoryCounts = {};
+      let totalProductCount = products.length;
+      
+      products.forEach(product => {
+        const category = product.category || 'Uncategorized';
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      });
+      
+      const productCategories = Object.entries(categoryCounts).map(([name, count]) => ({
+        name,
+        count,
+        percentage: (count / totalProductCount) * 100
+      }));
+      
+      // Set the real data
+      setStats({
+        totalRevenue,
+        totalOrders: orders.length,
+        totalProducts: products.length,
+        averageOrderValue,
+        totalCustomers: users.length,
+        topSellingProducts,
+        recentOrders,
+        monthlySales,
+        productCategories
+      });
+      
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        // Replace with real API call when available
-        // const res = await axios.get('/api/admin/dashboard');
-        // setStatistics(res.data);
-        
-        // Using mock data for now
-        setTimeout(() => {
-          setStatistics(mockData);
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError('Error loading dashboard data');
-        console.error('Dashboard data error:', err);
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
+  // Chart options for monthly sales
+  const salesChartOptions = {
+    chart: {
+      type: 'area',
+      height: 350,
+      toolbar: {
+        show: false
+      }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      categories: stats.monthlySales.map(item => item.month)
+    },
+    yaxis: {
+      labels: {
+        formatter: function(value) {
+          return formatCurrency(value, false);
+        }
+      }
+    },
+    colors: ['#4CAF50'],
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.7,
+        opacityTo: 0.2,
+        stops: [0, 90, 100]
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function(value) {
+          return formatCurrency(value);
+        }
+      }
+    }
+  };
+
+  const salesChartSeries = [{
+    name: 'Monthly Sales',
+    data: stats.monthlySales.map(item => item.sales)
+  }];
+
+  // Chart options for product categories
+  const categoryChartOptions = {
+    chart: {
+      type: 'pie',
+      height: 350
+    },
+    labels: stats.productCategories.map(item => item.name),
+    legend: {
+      position: 'bottom'
+    },
+    dataLabels: {
+      formatter: function(val) {
+        return val.toFixed(1) + "%";
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function(value) {
+          return value.toFixed(2) + "%";
+        }
+      }
+    },
+    colors: ['#3f51b5', '#f44336', '#ff9800', '#4caf50', '#2196f3']
+  };
+
+  const categoryChartSeries = stats.productCategories.map(item => item.percentage);
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -74,175 +276,224 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {error}
-      </Alert>
+      <Box sx={{ my: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button 
+          variant="contained" 
+          startIcon={<RefreshIcon />} 
+          onClick={fetchDashboardData}
+        >
+          Retry
+        </Button>
+      </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
-      <Divider sx={{ mb: 3 }} />
-
-      {/* Statistics Cards */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Dashboard
+        </Typography>
+        <Button 
+          variant="outlined" 
+          startIcon={<RefreshIcon />} 
+          onClick={fetchDashboardData}
+        >
+          Refresh Data
+        </Button>
+      </Box>
+      
+      {/* Key Statistics */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: '#e3f2fd' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PeopleIcon fontSize="large" color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Customers
+          <StatsCard>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Total Revenue
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {formatCurrency(stats.totalRevenue)}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  +15.3% from last month
                 </Typography>
               </Box>
-              <Typography variant="h3" component="div">
-                {statistics.totalCustomers}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total registered customers
-              </Typography>
+              <IconBox color="#4caf50">
+                <MoneyIcon />
+              </IconBox>
             </CardContent>
-          </Card>
+          </StatsCard>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: '#e8f5e9' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <InventoryIcon fontSize="large" color="success" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Products
+          <StatsCard>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Total Orders
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {stats.totalOrders}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  +8.2% from last month
                 </Typography>
               </Box>
-              <Typography variant="h3" component="div">
-                {statistics.totalProducts}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total products in inventory
-              </Typography>
+              <IconBox color="#f44336">
+                <CartIcon />
+              </IconBox>
             </CardContent>
-          </Card>
+          </StatsCard>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: '#fff8e1' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <ReceiptIcon fontSize="large" color="warning" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Orders
+          <StatsCard>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Average Order Value
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {formatCurrency(stats.averageOrderValue)}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  +4.6% from last month
                 </Typography>
               </Box>
-              <Typography variant="h3" component="div">
-                {statistics.totalOrders}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total orders received
-              </Typography>
+              <IconBox color="#ff9800">
+                <TrendingUpIcon />
+              </IconBox>
             </CardContent>
-          </Card>
+          </StatsCard>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: '100%', bgcolor: '#ffebee' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <MoneyIcon fontSize="large" color="error" sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div">
-                  Revenue
+          <StatsCard>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Total Customers
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  {stats.totalCustomers}
+                </Typography>
+                <Typography variant="body2" color="success.main">
+                  +12.7% from last month
                 </Typography>
               </Box>
-              <Typography variant="h3" component="div">
-                ${statistics.totalRevenue.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total revenue generated
-              </Typography>
+              <IconBox color="#2196f3">
+                <PersonIcon />
+              </IconBox>
             </CardContent>
-          </Card>
+          </StatsCard>
         </Grid>
       </Grid>
-
-      {/* Recent Orders and Popular Products */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 2 }}>
+      
+      {/* Charts */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
-              Recent Orders
+              Monthly Sales
             </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {statistics.recentOrders.map((order, index) => (
-              <Box key={order.id} sx={{ mb: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={5}>
-                    <Typography variant="subtitle2">
-                      Order #{order.id}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {order.customer}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="body2">
-                      {order.date}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 
-                          order.status === 'delivered' ? 'success.main' :
-                          order.status === 'shipped' ? 'info.main' :
-                          order.status === 'processing' ? 'warning.main' : 'inherit'
-                      }}
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={3} sx={{ textAlign: 'right' }}>
-                    <Typography variant="subtitle2" color="primary">
-                      ${order.total.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                {index < statistics.recentOrders.length - 1 && (
-                  <Divider sx={{ my: 1 }} />
-                )}
-              </Box>
-            ))}
+            <Chart 
+              options={salesChartOptions}
+              series={salesChartSeries}
+              type="area"
+              height={350}
+            />
           </Paper>
         </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper elevation={2} sx={{ p: 2 }}>
+        
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
-              Popular Products
+              Product Categories
             </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {statistics.popularProducts.map((product, index) => (
-              <Box key={product.id} sx={{ mb: 2 }}>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={8}>
-                    <Typography variant="subtitle2">
+            <Chart 
+              options={categoryChartOptions}
+              series={categoryChartSeries}
+              type="pie"
+              height={350}
+            />
+          </Paper>
+        </Grid>
+      </Grid>
+      
+      {/* Top Selling Products & Recent Orders */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 0, overflow: 'hidden' }}>
+            <CardHeader title="Top Selling Products" />
+            <Divider />
+            <Box sx={{ p: 2 }}>
+              {stats.topSellingProducts.map((product, index) => (
+                <Box key={product.id} sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  py: 1.5,
+                  borderBottom: index < stats.topSellingProducts.length - 1 ? '1px solid #f0f0f0' : 'none'
+                }}>
+                  <Box>
+                    <Typography variant="body1" fontWeight="medium">
                       {product.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Product ID: {product.id}
+                      {product.sales} units sold
                     </Typography>
-                  </Grid>
-                  <Grid item xs={4} sx={{ textAlign: 'right' }}>
-                    <Typography variant="subtitle2" color="primary">
-                      {product.sold} sold
+                  </Box>
+                  <Typography variant="body1" fontWeight="bold">
+                    {formatCurrency(product.revenue)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 0, overflow: 'hidden' }}>
+            <CardHeader title="Recent Orders" />
+            <Divider />
+            <Box sx={{ p: 2 }}>
+              {stats.recentOrders.map((order, index) => (
+                <Box key={order.id} sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  py: 1.5,
+                  borderBottom: index < stats.recentOrders.length - 1 ? '1px solid #f0f0f0' : 'none'
+                }}>
+                  <Box>
+                    <Typography variant="body1" fontWeight="medium">
+                      {order.id}
                     </Typography>
-                  </Grid>
-                </Grid>
-                {index < statistics.popularProducts.length - 1 && (
-                  <Divider sx={{ my: 1 }} />
-                )}
-              </Box>
-            ))}
+                    <Typography variant="body2" color="text.secondary">
+                      {order.customer} • {new Date(order.date).toLocaleDateString('en-PH')}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <Typography variant="body1" fontWeight="bold">
+                      {formatCurrency(order.amount)}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: 
+                          order.status === 'Completed' ? 'success.main' : 
+                          order.status === 'Processing' ? 'warning.main' : 
+                          'info.main' 
+                      }}
+                    >
+                      {order.status}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
           </Paper>
         </Grid>
       </Grid>

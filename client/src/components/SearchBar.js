@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import defaultProductImage from '../assets/default-product.jpg';
 import { 
   InputBase, 
   IconButton, 
@@ -139,7 +140,7 @@ const SearchBar = ({ onClose }) => {
                   >
                     <ListItemAvatar>
                       <Avatar 
-                        src={product.image} 
+                        src={product.image || defaultProductImage} 
                         alt={product.name}
                         variant="rounded"
                         sx={{ width: 50, height: 50 }}
