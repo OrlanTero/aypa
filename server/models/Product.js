@@ -17,15 +17,13 @@ const ProductSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: true,
-    enum: ['TShirt', 'IDLaces', 'Accessories', 'Other']
+    required: true
   },
   imageUrls: [{
     type: String
   }],
   sizes: [{
-    type: String,
-    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size']
+    type: String
   }],
   colors: [{
     type: String

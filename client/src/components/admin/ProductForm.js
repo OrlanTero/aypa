@@ -19,7 +19,9 @@ import {
   Typography,
   Paper,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Divider,
+  FormHelperText
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,11 +33,14 @@ import { PRODUCT_ENDPOINTS } from '../../constants/apiConfig';
 import { getImageUrl } from '../../utils/imageUtils';
 import defaultProductImage from '../../assets/default-product.jpg';
 
-// Available product categories
-const categories = ['TShirt', 'IDLaces', 'Accessories', 'Other'];
+// Suggested categories (no longer enforced as enum)
+const suggestedCategories = ['Electronics', 'Clothing', 'Shoes', 'Accessories', 'Home', 'Beauty', 'Sports', 'Books'];
 
-// Available sizes to match backend validation
-const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
+// Suggested sizes (no longer enforced as enum)
+const suggestedSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'One Size'];
+
+// Suggested colors (no longer enforced)
+const suggestedColors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Navy', 'Gray', 'Brown'];
 
 // Available colors to match backend validation
 const availableColors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Navy', 'Gray', 'Brown'];
@@ -56,9 +61,12 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
     colors: []
   });
   
-  // New size/color inputs
+  // New size/color/category inputs
   const [newSize, setNewSize] = useState('');
   const [newColor, setNewColor] = useState('');
+  const [customColor, setCustomColor] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [customSize, setCustomSize] = useState('');
   
   // Image upload state
   const [images, setImages] = useState([]);
@@ -128,6 +136,16 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
       setNewSize('');
     }
   };
+
+  const handleAddCustomSize = () => {
+    if (customSize && !formData.sizes.includes(customSize)) {
+      setFormData({
+        ...formData,
+        sizes: [...formData.sizes, customSize]
+      });
+      setCustomSize('');
+    }
+  };
   
   const handleRemoveSize = (sizeToRemove) => {
     setFormData({
@@ -151,6 +169,26 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
       ...formData,
       colors: formData.colors.filter(color => color !== colorToRemove)
     });
+  };
+
+  const handleAddCustomCategory = () => {
+    if (newCategory && newCategory.trim() !== '') {
+      setFormData({
+        ...formData,
+        category: newCategory
+      });
+      setNewCategory('');
+    }
+  };
+  
+  const handleAddCustomColor = () => {
+    if (customColor && !formData.colors.includes(customColor)) {
+      setFormData({
+        ...formData,
+        colors: [...formData.colors, customColor]
+      });
+      setCustomColor('');
+    }
   };
   
   const handleImageChange = (e) => {
@@ -190,7 +228,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
       setError(null);
       
       // Validate form data
-      if (!formData.name || !formData.price || !formData.category || !formData.stock) {
+      if (!formData.name || !formData.price || !formData.category || !formData.stock || !formData.description) {
         setError('Please fill all required fields');
         setLoading(false);
         return;
@@ -463,22 +501,50 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                   />
                 </Grid>
                 
+                {/* Category Dropdown and Custom Category */}
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Category</InputLabel>
-                    <Select
-                      name="category"
-                      value={formData.category}
-                      label="Category"
-                      onChange={handleInputChange}
+                  <Box sx={{ mb: 1 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="category-label">Category</InputLabel>
+                      <Select
+                        labelId="category-label"
+                        id="category"
+                        name="category"
+                        value={formData.category}
+                        label="Category"
+                        onChange={handleInputChange}
+                        error={!!error}
+                      >
+                        {suggestedCategories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {error && (
+                        <FormHelperText error>{error}</FormHelperText>
+                      )}
+                    </FormControl>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="New Category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="Add custom category"
+                    />
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleAddCustomCategory}
+                      startIcon={<AddIcon />}
+                      disabled={!newCategory || newCategory === formData.category}
                     >
-                      {categories.map((category) => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      Add
+                    </Button>
+                  </Box>
                 </Grid>
                 
                 <Grid item xs={12} sm={6}>
@@ -493,6 +559,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                 
                 <Grid item xs={12}>
                   <TextField
+                    required
                     fullWidth
                     multiline
                     rows={3}
@@ -518,7 +585,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                   />
                 </Grid>
                 
-                {/* Sizes Section */}
+                {/* Sizes Section with custom option */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" gutterBottom>
                     Available Sizes
@@ -531,7 +598,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                         label="Select Size"
                         onChange={(e) => setNewSize(e.target.value)}
                       >
-                        {availableSizes
+                        {suggestedSizes
                           .filter(size => !formData.sizes.includes(size))
                           .map((size) => (
                             <MenuItem key={size} value={size}>
@@ -549,6 +616,26 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                       Add
                     </Button>
                   </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1, mb: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Custom Size"
+                      value={customSize}
+                      onChange={(e) => setCustomSize(e.target.value)}
+                      placeholder="Enter a custom size"
+                    />
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleAddCustomSize}
+                      startIcon={<AddIcon />}
+                      disabled={!customSize || formData.sizes.includes(customSize)}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {formData.sizes.map((size) => (
                       <Chip
@@ -560,7 +647,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                   </Box>
                 </Grid>
                 
-                {/* Colors Section */}
+                {/* Colors Section with custom option */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" gutterBottom>
                     Available Colors
@@ -573,7 +660,7 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                         label="Select Color"
                         onChange={(e) => setNewColor(e.target.value)}
                       >
-                        {availableColors
+                        {suggestedColors
                           .filter(color => !formData.colors.includes(color))
                           .map((color) => (
                             <MenuItem key={color} value={color}>
@@ -591,6 +678,26 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                       Add
                     </Button>
                   </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1, mb: 1 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Custom Color"
+                      value={customColor}
+                      onChange={(e) => setCustomColor(e.target.value)}
+                      placeholder="Enter a custom color"
+                    />
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleAddCustomColor}
+                      startIcon={<AddIcon />}
+                      disabled={!customColor || formData.colors.includes(customColor)}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+                  
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {formData.colors.map((color) => (
                       <Chip
