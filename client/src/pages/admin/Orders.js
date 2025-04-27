@@ -54,12 +54,14 @@ import {
   CheckCircle as VerifiedIcon,
   Cancel as RejectedIcon,
   Payment as PaymentIcon,
-  LocalShipping as DeliveryIcon
+  LocalShipping as DeliveryIcon,
+  Print as PrintIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { ORDER_ENDPOINTS } from '../../constants/apiConfig';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
+import { printReceipt } from '../../utils/receiptUtils';
 
 // Order status color mapping
 const getStatusColor = (status) => {
@@ -158,6 +160,10 @@ const Orders = () => {
   });
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [deliverySuccess, setDeliverySuccess] = useState(false);
+  
+  // Receipt generation state
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptSuccess, setReceiptSuccess] = useState(false);
 
   useEffect(() => {
     setDocumentTitle(PAGE_TITLES.ADMIN_ORDERS);
@@ -504,6 +510,42 @@ const Orders = () => {
     }));
   };
 
+  // Handle receipt generation
+  const handleGenerateReceipt = async () => {
+    if (!selectedOrder) return;
+
+    // Only verified payments can generate receipts
+    if (
+      !selectedOrder.paymentInfo || 
+      selectedOrder.paymentInfo.verificationStatus !== 'verified'
+    ) {
+      setError('Cannot generate receipt. Payment has not been verified.');
+      return;
+    }
+
+    try {
+      setReceiptLoading(true);
+      const response = await axios.get(ORDER_ENDPOINTS.RECEIPT(selectedOrder._id));
+      
+      // Print the receipt
+      printReceipt(response.data);
+      
+      setReceiptSuccess(true);
+      
+      // Reset success state after delay
+      setTimeout(() => {
+        setReceiptSuccess(false);
+      }, 3000);
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error generating receipt:', err);
+      setError(err.response?.data?.msg || 'Failed to generate receipt');
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
   return (
     <Container maxWidth="xl">
       <Box sx={{ mt: 3, mb: 4 }}>
@@ -766,6 +808,18 @@ const Orders = () => {
             </Box>
           </DialogTitle>
           <DialogContent dividers>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            
+            {receiptSuccess && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                Receipt generated successfully!
+              </Alert>
+            )}
+
             <Tabs
               value={activeTab}
               onChange={handleTabChange}
@@ -1112,14 +1166,27 @@ const Orders = () => {
               </Button>
             )}
             {activeTab === 1 && selectedOrder.paymentMethod !== 'cash_on_delivery' && (
-              <Button 
-                variant="outlined" 
-                color="primary"
-                startIcon={<PaymentIcon />}
-                onClick={handleOpenPaymentVerification}
-              >
-                Verify Payment
-              </Button>
+              <>
+                <Button 
+                  variant="outlined" 
+                  color="primary"
+                  startIcon={<PaymentIcon />}
+                  onClick={handleOpenPaymentVerification}
+                >
+                  Verify Payment
+                </Button>
+                {selectedOrder.paymentInfo && selectedOrder.paymentInfo.verificationStatus === 'verified' && (
+                  <Button 
+                    variant="outlined" 
+                    color="success"
+                    startIcon={<PrintIcon />}
+                    onClick={handleGenerateReceipt}
+                    disabled={receiptLoading}
+                  >
+                    {receiptLoading ? <CircularProgress size={24} /> : 'Generate Receipt'}
+                  </Button>
+                )}
+              </>
             )}
             {activeTab === 2 && (
               <Button 

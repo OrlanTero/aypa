@@ -330,4 +330,53 @@ router.delete('/:id', [auth, admin], async (req, res) => {
   }
 });
 
+// @route   GET api/orders/:id/receipt
+// @desc    Generate a receipt for an order
+// @access  Private/Admin
+router.get('/:id/receipt', [auth, admin], async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate({
+        path: 'items.product',
+        select: 'name price brand category'
+      })
+      .populate('paymentInfo.verifiedBy', 'name');
+
+    if (!order) {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+
+    // Check if payment has been verified
+    if (order.paymentInfo && order.paymentInfo.verificationStatus !== 'verified') {
+      return res.status(400).json({ msg: 'Payment has not been verified yet' });
+    }
+
+    // Generate receipt data
+    const receipt = {
+      receiptId: `RCPT-${order._id.toString().substring(order._id.toString().length - 6)}`,
+      orderNumber: order._id,
+      customer: order.user,
+      date: new Date(),
+      paymentDate: order.paymentInfo ? order.paymentInfo.verifiedAt : null,
+      verifiedBy: order.paymentInfo ? order.paymentInfo.verifiedBy : null,
+      paymentMethod: order.paymentMethod,
+      paymentReference: order.paymentInfo ? order.paymentInfo.referenceNumber : null,
+      items: order.items,
+      subtotal: order.totalAmount - order.deliveryFee,
+      deliveryFee: order.deliveryFee,
+      totalAmount: order.totalAmount,
+      shippingAddress: order.shippingAddress
+    };
+
+    res.json(receipt);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Order not found' });
+    }
+    res.status(500).send('Server error');
+  }
+});
+
 module.exports = router; 

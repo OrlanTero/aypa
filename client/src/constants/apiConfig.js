@@ -53,6 +53,7 @@ export const ORDER_ENDPOINTS = {
   UPDATE_DELIVERY: (id) => `${API_BASE_URL}/orders/${id}/delivery`,
   CANCEL: (id) => `${API_BASE_URL}/orders/${id}/cancel`,
   TRACK: (id) => `${API_BASE_URL}/orders/${id}/track`,
+  RECEIPT: (id) => `${API_BASE_URL}/orders/${id}/receipt`,
 };
 
 // User endpoints
