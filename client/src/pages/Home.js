@@ -42,7 +42,9 @@ import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
   const navigate = useNavigate();
@@ -54,30 +56,56 @@ const Home = () => {
 
   useEffect(() => {
     setDocumentTitle(PAGE_TITLES.HOME);
-    const fetchFeaturedProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(PRODUCT_ENDPOINTS.FEATURED);
-        console.log('Featured products data:', response.data);
-        
-        if (response.data && response.data.length > 0) {
-          response.data.forEach(product => {
-            console.log(`Product ${product.name} images:`, product.imageUrls);
-          });
-        }
-        
-        setFeaturedProducts(response.data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching featured products:', err);
-        setError('Failed to load featured products. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFeaturedProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const response = await axios.get('/api/products/filters/options');
+      const { categories: fetchedCategories } = response.data;
+      
+      // Map categories to have a path
+      const mappedCategories = fetchedCategories.map(category => ({
+        name: category,
+        path: `/products?category=${encodeURIComponent(category)}`
+      }));
+      
+      setCategories(mappedCategories);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      // If there's an error, use default categories
+      setCategories([
+        { name: 'T-Shirts', path: '/products?category=TShirt' },
+        { name: 'Accessories', path: '/products?category=Accessories' }
+      ]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+  
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(PRODUCT_ENDPOINTS.FEATURED);
+      console.log('Featured products data:', response.data);
+      
+      if (response.data && response.data.length > 0) {
+        response.data.forEach(product => {
+          console.log(`Product ${product.name} images:`, product.imageUrls);
+        });
+      }
+      
+      setFeaturedProducts(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching featured products:', err);
+      setError('Failed to load featured products. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getAverageRating = (ratings) => {
     if (!ratings || ratings.length === 0) return 0;
@@ -139,12 +167,26 @@ const Home = () => {
     return imageUrl;
   };
 
-  // Categories for the homepage
-  const categories = [
-    { name: 'T-Shirts', image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80', path: '/products?category=t-shirts' },
-    { name: 'Hoodies', image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80', path: '/products?category=hoodies' },
-    { name: 'Accessories', image: 'https://images.unsplash.com/photo-1523779105320-d1cd346ff52b?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80', path: '/products?category=accessories' },
-  ];
+  // Helper function to get category icon/color
+  const getCategoryIcon = (categoryName) => {
+    const name = categoryName.toLowerCase();
+    // Return different icon colors based on category name
+    if (name.includes('shirt') || name.includes('clothing')) return theme.palette.primary.main;
+    if (name.includes('accessories')) return theme.palette.secondary.main;
+    if (name.includes('shoes')) return theme.palette.error.main;
+    if (name.includes('electronics')) return theme.palette.info.main;
+    if (name.includes('beauty')) return theme.palette.warning.main;
+    if (name.includes('home')) return theme.palette.success.main;
+    if (name.includes('book')) return theme.palette.info.dark;
+    
+    // Generate a consistent color based on the category name
+    let hash = 0;
+    for (let i = 0; i < categoryName.length; i++) {
+      hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 70%, 45%)`;
+  };
 
   return (
     <Box>
@@ -391,7 +433,6 @@ const Home = () => {
           </Box>
         </Box>
 
-
         {/* Product Categories */}
         <Box sx={{ mb: { xs: 4, sm: 6 } }}>
           <Typography 
@@ -407,62 +448,95 @@ const Home = () => {
             Shop by Category
           </Typography>
           
-          <Grid container spacing={{ xs: 1, sm: 3 }}>
-            {categories.map((category, index) => (
-              <Grid item xs={6} sm={3} key={index}>
-                <Paper
-                  component={RouterLink}
-                  to={category.path}
-                  sx={{
-                    position: 'relative',
-                    height: { xs: 120, sm: 200 },
-                    overflow: 'hidden',
-                    borderRadius: 2,
-                    display: 'block',
-                    textDecoration: 'none',
-                    boxShadow: 2,
-                    transition: 'transform 0.3s',
-                    '&:hover': {
-                      transform: 'scale(1.03)',
-                    }
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={category.image}
-                    alt={category.name}
+          {categoriesLoading ? (
+            <Grid container spacing={{ xs: 1, sm: 3 }}>
+              {Array.from(new Array(4)).map((_, index) => (
+                <Grid item xs={6} sm={4} md={3} key={index}>
+                  <Skeleton variant="rounded" height={isMobile ? 120 : 200} animation="wave" />
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Grid container spacing={{ xs: 1, sm: 3 }}>
+              {categories.map((category, index) => (
+                <Grid item xs={6} sm={4} md={3} lg={2} key={index}>
+                  <Paper
+                    component={RouterLink}
+                    to={category.path}
+                    elevation={2}
                     sx={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      bgcolor: 'rgba(0, 0, 0, 0.6)',
-                      color: 'white',
-                      p: { xs: 1, sm: 2 },
-                      textAlign: 'center'
+                      height: { xs: 120, sm: 150 },
+                      borderRadius: 3,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      textDecoration: 'none',
+                      color: 'text.primary',
+                      textAlign: 'center',
+                      p: 2,
+                      transition: 'all 0.3s ease',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      '&:hover': {
+                        transform: 'translateY(-5px)',
+                        boxShadow: 4,
+                        '& .category-bg': {
+                          opacity: 0.6,
+                        }
+                      }
                     }}
                   >
+                    <Box 
+                      className="category-bg"
+                      sx={{ 
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: getCategoryIcon(category.name),
+                        opacity: 0.2,
+                        transition: 'opacity 0.3s ease',
+                        zIndex: 0
+                      }}
+                    />
+                    
+                    <Box 
+                      sx={{ 
+                        width: 50,
+                        height: 50,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        bgcolor: alpha(getCategoryIcon(category.name), 0.2),
+                        color: getCategoryIcon(category.name),
+                        mb: 1,
+                        fontWeight: 'bold',
+                        fontSize: '1.5rem',
+                        position: 'relative',
+                        zIndex: 1
+                      }}
+                    >
+                      {category.name.charAt(0).toUpperCase()}
+                    </Box>
+                    
                     <Typography 
-                      variant="h6"
+                      variant="subtitle1"
                       sx={{ 
                         fontWeight: 'bold',
-                        fontSize: { xs: '0.9rem', sm: '1.1rem', md: '1.25rem' }
+                        zIndex: 1,
+                        position: 'relative'
                       }}
                     >
                       {category.name}
                     </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Box>
       </Container>
 
