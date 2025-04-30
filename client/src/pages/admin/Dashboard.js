@@ -24,7 +24,7 @@ import { styled } from '@mui/material/styles';
 import axios from 'axios';
 import Chart from 'react-apexcharts';
 import { formatCurrency } from '../../utils/formatters';
-import { PRODUCT_ENDPOINTS, ORDER_ENDPOINTS, USER_ENDPOINTS } from '../../constants/apiConfig';
+import { API_BASE_URL, PRODUCT_ENDPOINTS, ORDER_ENDPOINTS } from '../../constants/apiConfig';
 import { setDocumentTitle, PAGE_TITLES } from '../../utils/titleUtils';
 
 // Custom styled components
@@ -71,16 +71,35 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch real data from APIs
-      const [productsResponse, ordersResponse, usersResponse] = await Promise.all([
-        axios.get(PRODUCT_ENDPOINTS.ALL),
-        axios.get(ORDER_ENDPOINTS.ALL),
-        axios.get(USER_ENDPOINTS.ALL)
-      ]);
+      // Fetch real data from APIs - use try/catch for each request to handle potential failures
+      let products = [];
+      let orders = [];
+      let users = [];
       
-      const products = productsResponse.data;
-      const orders = ordersResponse.data;
-      const users = usersResponse.data;
+      try {
+        const productsResponse = await axios.get(PRODUCT_ENDPOINTS.ALL);
+        products = productsResponse.data;
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        // Continue with empty products array
+      }
+      
+      try {
+        const ordersResponse = await axios.get(ORDER_ENDPOINTS.ALL);
+        orders = ordersResponse.data;
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        // Continue with empty orders array
+      }
+      
+      try {
+        // Use the correct endpoint - fetch users from the backend API
+        const usersResponse = await axios.get(`${API_BASE_URL}/users`);
+        users = usersResponse.data;
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        // Continue with empty users array
+      }
       
       // Calculate total revenue and average order value
       const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);

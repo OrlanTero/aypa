@@ -33,5 +33,6 @@ export const PAGE_TITLES = {
   ADMIN_ORDERS: 'Order Management',
   ADMIN_REPORTS: 'Reports',
   ADMIN_PROFILE: 'Admin Profile',
+  ADMIN_MESSAGES: 'Customer Support Messages',
   ADMIN_LOGIN: 'Admin Login'
 }; 

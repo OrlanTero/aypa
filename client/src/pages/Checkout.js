@@ -224,8 +224,15 @@ const Checkout = () => {
     // Add distance-based fee
     if (selectedRegion === 'Metro Manila') {
       // No additional fee for Metro Manila
-    } else if (['Calabarzon', 'Central Luzon'].includes(selectedRegion)) {
-      baseFee += 100; // Additional fee for nearby regions
+    } else if (selectedRegion === 'Calabarzon') {
+      // Calabarzon delivery fees range from 75 to 150, depending on delivery method
+      if (deliveryMethod === 'standard') {
+        baseFee = 75; // Standard delivery to Calabarzon is 75 PHP
+      } else {
+        baseFee = 150; // Priority delivery to Calabarzon is 150 PHP
+      }
+    } else if (selectedRegion === 'Central Luzon') {
+      baseFee += 100; // Additional fee for Central Luzon
     } else {
       baseFee += 250; // Additional fee for farther regions
     }
@@ -688,8 +695,13 @@ const Checkout = () => {
                 • Delivery speed ({deliveryMethod === 'priority' ? 'Priority' : 'Standard'})
               </Typography>
               <Typography variant="body2">
-                • Destination region ({selectedAddress?.state || 'Not selected'})
+                • Destination region ({selectedAddress?.state || selectedRegion || 'Not selected'})
               </Typography>
+              {selectedRegion === 'Calabarzon' && (
+                <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 'bold', mt: 1 }}>
+                  Special rates for Calabarzon: ₱75 (Standard) to ₱150 (Priority)
+                </Typography>
+              )}
             </Box>
           </Box>
         );

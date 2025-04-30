@@ -30,7 +30,9 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   KeyboardArrowRight,
-  AccountCircle
+  AccountCircle,
+  Chat as ChatIcon,
+  Message as MessageIcon
 } from '@mui/icons-material';
 import { styled, useTheme } from '@mui/material/styles';
 import { getUserAvatarUrl } from '../../utils/imageUtils';
@@ -70,6 +72,7 @@ const AdminLayout = ({ children }) => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard' },
     { text: 'Inventory', icon: <InventoryIcon />, path: '/admin/inventory' },
     { text: 'Orders', icon: <OrdersIcon />, path: '/admin/orders' },
+    { text: 'Messages', icon: <MessageIcon />, path: '/admin/messages' },
     { text: 'Reports', icon: <ReportsIcon />, path: '/admin/reports' },
     { text: 'Profile', icon: <PersonIcon />, path: '/admin/profile' }
   ];

@@ -19,7 +19,9 @@ import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import ForumIcon from '@mui/icons-material/Forum';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import Chatbot from '../components/customer/Chatbot';
+import AdminChat from '../components/customer/AdminChat';
 import faqData from '../constants/faqData';
 import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
@@ -36,7 +38,7 @@ const CustomerSupport = () => {
           Customer Support
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: 700, mx: 'auto' }}>
-          We're here to help! Browse our frequently asked questions or use the chat assistant for immediate help.
+          We're here to help! Browse our frequently asked questions, use our AI assistant, or chat directly with our support team.
         </Typography>
       </Box>
 
@@ -84,16 +86,24 @@ const CustomerSupport = () => {
           <Card elevation={2}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <ForumIcon color="primary" sx={{ mr: 1, fontSize: 28 }} />
-                <Typography variant="h6">Live Chat</Typography>
+                <SupportAgentIcon color="primary" sx={{ mr: 1, fontSize: 28 }} />
+                <Typography variant="h6">Direct Admin Chat</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
-                Chat with our support team in real-time for immediate assistance.
+                Chat directly with our support team for personalized assistance with your specific issues.
               </Typography>
             </CardContent>
             <CardActions>
-              <Button size="small" color="primary">
-                Start Chat
+              <Button 
+                size="small" 
+                color="primary" 
+                variant="contained"
+                onClick={() => {
+                  const chatButton = document.querySelector("[aria-label='chat with support']");
+                  if (chatButton) chatButton.click();
+                }}
+              >
+                Chat with an Admin
               </Button>
             </CardActions>
           </Card>
@@ -130,18 +140,67 @@ const CustomerSupport = () => {
         ))}
       </Paper>
       
-      {/* Virtual Assistant */}
-      <Box sx={{ textAlign: 'center', mb: 8 }}>
-        <Typography variant="h5" gutterBottom>
-          Need More Help?
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Our virtual assistant is available 24/7 to answer your questions. Click the chat button in the bottom right corner.
-        </Typography>
-      </Box>
+      {/* Support Options Section */}
+      <Paper elevation={1} sx={{ p: 4, mb: 6 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <ForumIcon color="primary" sx={{ mr: 1, fontSize: 30 }} />
+          <Typography variant="h5" component="h2">
+            Support Options
+          </Typography>
+        </Box>
+        
+        <Divider sx={{ mb: 3 }} />
+        
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <SupportAgentIcon sx={{ mr: 1 }} /> Talk to an Admin
+              </Typography>
+              <Typography variant="body2" paragraph>
+                Need personalized help? Chat directly with our support team. Your conversation will be saved so you can always refer back to it later.
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={() => {
+                  const chatButton = document.querySelector("[aria-label='chat with support']");
+                  if (chatButton) chatButton.click();
+                }}
+              >
+                Start Admin Chat
+              </Button>
+            </Box>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Virtual AI Assistant
+              </Typography>
+              <Typography variant="body2" paragraph>
+                Get immediate answers to common questions from our AI assistant. Available 24/7 for quick help.
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="primary"
+                onClick={() => {
+                  const botIcon = document.querySelector('.Chatbot-trigger');
+                  if (botIcon) botIcon.click();
+                }}
+              >
+                Ask AI Assistant
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
       
-      {/* Chatbot component */}
+      {/* AI Assistant */}
       <Chatbot />
+      
+      {/* Admin Direct Chat */}
+      <AdminChat />
     </Container>
   );
 };

@@ -22,18 +22,35 @@ import {
   Tabs,
   Tab,
   Card,
-  CardContent
+  CardContent,
+  Link,
+  Menu,
+  MenuItem as MenuItemUI,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
   ShoppingCart as CartIcon,
   Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
   Share as ShareIcon,
   Add as AddIcon,
-  Remove as RemoveIcon
+  Remove as RemoveIcon,
+  Send as SendIcon,
+  ContentCopy as ContentCopyIcon,
+  Facebook as FacebookIcon,
+  Twitter as TwitterIcon,
+  WhatsApp as WhatsAppIcon,
+  Email as EmailIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
+import { FavoritesContext } from '../context/FavoritesContext';
 import { PRODUCT_ENDPOINTS } from '../constants/apiConfig';
 import defaultProductImage from '../assets/default-product.jpg';
 import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
@@ -43,9 +60,10 @@ import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const { addToCart } = useContext(CartContext);
-
+  const { isFavorite, addToFavorites, removeFromFavorites } = useContext(FavoritesContext);
+  
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,6 +75,15 @@ const ProductDetail = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [isProductFavorite, setIsProductFavorite] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [userHasReviewed, setUserHasReviewed] = useState(false);
+  
+  // Share menu state
+  const [shareMenuAnchor, setShareMenuAnchor] = useState(null);
+  const shareMenuOpen = Boolean(shareMenuAnchor);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -73,6 +100,14 @@ const ProductDetail = () => {
           setSelectedSize(productData.sizes[0]);
         }
         
+        // Check if user has already reviewed this product
+        if (isAuthenticated && user && productData.ratings) {
+          const hasReviewed = productData.ratings.some(
+            review => review.user === user.id
+          );
+          setUserHasReviewed(hasReviewed);
+        }
+        
         setLoading(false);
         setDocumentTitle(product ? `${product.name} | ${PAGE_TITLES.PRODUCT_DETAIL}` : PAGE_TITLES.PRODUCT_DETAIL);
       } catch (err) {
@@ -83,7 +118,13 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, isAuthenticated, user]);
+
+  useEffect(() => {
+    if (product && isAuthenticated) {
+      setIsProductFavorite(isFavorite(product._id));
+    }
+  }, [product, isFavorite, isAuthenticated]);
 
   const handleSizeChange = (event) => {
     setSelectedSize(event.target.value);
@@ -166,6 +207,164 @@ const ProductDetail = () => {
     if (!ratings || ratings.length === 0) return 0;
     const sum = ratings.reduce((total, item) => total + item.rating, 0);
     return sum / ratings.length;
+  };
+
+  // Add toggleFavorite function
+  const toggleFavorite = async () => {
+    if (!isAuthenticated) {
+      // Show login prompt
+      setSnackbarMessage('Please log in to add items to favorites');
+      setSnackbarSeverity('info');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      if (isProductFavorite) {
+        await removeFromFavorites(product._id);
+        setSnackbarMessage('Removed from favorites');
+      } else {
+        await addToFavorites(product._id);
+        setSnackbarMessage('Added to favorites');
+      }
+      setIsProductFavorite(!isProductFavorite);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      setSnackbarMessage('Failed to update favorites');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleReviewRatingChange = (event, newValue) => {
+    setReviewRating(newValue);
+  };
+  
+  const handleReviewCommentChange = (event) => {
+    setReviewComment(event.target.value);
+  };
+  
+  const handleSubmitReview = async () => {
+    if (!isAuthenticated) {
+      setSnackbarMessage('Please log in to submit a review');
+      setSnackbarSeverity('info');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    if (!reviewComment.trim()) {
+      setSnackbarMessage('Please enter a review comment');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    try {
+      setReviewSubmitting(true);
+      const response = await axios.post(
+        PRODUCT_ENDPOINTS.REVIEWS(id),
+        {
+          rating: reviewRating,
+          review: reviewComment
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          }
+        }
+      );
+      
+      // Update product with new reviews
+      setProduct({ ...product, ratings: response.data });
+      setUserHasReviewed(true);
+      
+      // Reset form
+      setReviewComment('');
+      setReviewRating(5);
+      
+      setSnackbarMessage('Review submitted successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      let errorMsg = 'Failed to submit review. Please try again.';
+      
+      if (err.response && err.response.data && err.response.data.msg) {
+        errorMsg = err.response.data.msg;
+      }
+      
+      setSnackbarMessage(errorMsg);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  // Handle share menu open
+  const handleShareClick = (event) => {
+    setShareMenuAnchor(event.currentTarget);
+  };
+
+  // Handle share menu close
+  const handleShareMenuClose = () => {
+    setShareMenuAnchor(null);
+  };
+
+  // Copy product URL to clipboard
+  const handleCopyLink = () => {
+    const productUrl = window.location.href;
+    navigator.clipboard.writeText(productUrl)
+      .then(() => {
+        setSnackbarMessage('Link copied to clipboard');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        handleShareMenuClose();
+      })
+      .catch((err) => {
+        console.error('Failed to copy link:', err);
+        setSnackbarMessage('Failed to copy link');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      });
+  };
+
+  // Share on Facebook
+  const handleShareFacebook = () => {
+    const productUrl = encodeURIComponent(window.location.href);
+    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${productUrl}`;
+    window.open(shareUrl, '_blank');
+    handleShareMenuClose();
+  };
+
+  // Share on Twitter
+  const handleShareTwitter = () => {
+    const productUrl = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out this ${product.name}!`);
+    const shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${productUrl}`;
+    window.open(shareUrl, '_blank');
+    handleShareMenuClose();
+  };
+
+  // Share on WhatsApp
+  const handleShareWhatsApp = () => {
+    const productUrl = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Check out this ${product.name}! ${window.location.href}`);
+    const shareUrl = `https://wa.me/?text=${text}`;
+    window.open(shareUrl, '_blank');
+    handleShareMenuClose();
+  };
+
+  // Share via Email
+  const handleShareEmail = () => {
+    const subject = encodeURIComponent(`Check out this ${product.name}!`);
+    const body = encodeURIComponent(`I found this amazing product: ${product.name}\n\nPrice: ${formatCurrency(product.price)}\n\nCheck it out here: ${window.location.href}`);
+    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+    window.location.href = mailtoUrl;
+    handleShareMenuClose();
   };
 
   if (loading) {
@@ -297,21 +496,34 @@ const ProductDetail = () => {
             </Typography>
             
             <Box sx={{ mb: 2 }}>
-              {product.brand && (
-                <Typography variant="subtitle1" gutterBottom>
-                  Brand: <Chip label={product.brand} size="small" />
-                </Typography>
-              )}
-              <Typography variant="subtitle1" gutterBottom>
-                Category: <Chip label={product.category} size="small" />
-              </Typography>
-              <Typography variant="subtitle1" gutterBottom>
-                Availability: 
+              <Typography variant="subtitle2" gutterBottom>
+                {product.stock > 0 ? (
+                  <Chip 
+                    label={`In Stock (${product.stock} available)`} 
+                    color="success" 
+                    size="small" 
+                    sx={{ mr: 1 }}
+                  />
+                ) : (
+                  <Chip 
+                    label="Out of Stock" 
+                    color="error" 
+                    size="small" 
+                    sx={{ mr: 1 }}
+                  />
+                )}
+                {product.brand && (
+                  <Chip 
+                    label={`Brand: ${product.brand}`} 
+                    variant="outlined" 
+                    size="small" 
+                    sx={{ mr: 1 }}
+                  />
+                )}
                 <Chip 
-                  label={product.stock > 0 ? 'In Stock' : 'Out of Stock'} 
-                  color={product.stock > 0 ? 'success' : 'error'}
-                  size="small"
-                  sx={{ ml: 1 }}
+                  label={`Category: ${product.category}`} 
+                  variant="outlined" 
+                  size="small" 
                 />
               </Typography>
             </Box>
@@ -415,10 +627,18 @@ const ProductDetail = () => {
                 justifyContent: { xs: 'center', sm: 'flex-start' },
                 mt: { xs: 1, sm: 0 }
               }}>
-                <IconButton color="secondary" aria-label="add to favorites">
-                  <FavoriteIcon />
+                <IconButton 
+                  color={isProductFavorite ? "secondary" : "default"} 
+                  aria-label={isProductFavorite ? "remove from favorites" : "add to favorites"}
+                  onClick={toggleFavorite}
+                >
+                  {isProductFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
                 </IconButton>
-                <IconButton color="primary" aria-label="share">
+                <IconButton 
+                  color="primary" 
+                  aria-label="share"
+                  onClick={handleShareClick}
+                >
                   <ShareIcon />
                 </IconButton>
               </Box>
@@ -459,6 +679,56 @@ const ProductDetail = () => {
                 Customer Reviews
               </Typography>
               
+              {/* Review submission form */}
+              {isAuthenticated ? (
+                !userHasReviewed ? (
+                  <Box sx={{ mb: 4, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid rgba(0, 0, 0, 0.12)' }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      Write a Review
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography component="legend" variant="body2" gutterBottom>
+                        Your Rating
+                      </Typography>
+                      <Rating
+                        name="review-rating"
+                        value={reviewRating}
+                        onChange={handleReviewRatingChange}
+                        precision={1}
+                      />
+                    </Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={4}
+                      variant="outlined"
+                      placeholder="Share your experience with this product..."
+                      value={reviewComment}
+                      onChange={handleReviewCommentChange}
+                      sx={{ mb: 2 }}
+                    />
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      endIcon={<SendIcon />}
+                      onClick={handleSubmitReview}
+                      disabled={reviewSubmitting || !reviewComment.trim()}
+                    >
+                      {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                    </Button>
+                  </Box>
+                ) : (
+                  <Alert severity="info" sx={{ mb: 3 }}>
+                    You have already reviewed this product.
+                  </Alert>
+                )
+              ) : (
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  Please <Link href="/login" underline="hover">log in</Link> to leave a review.
+                </Alert>
+              )}
+              
+              {/* Reviews list */}
               {product.ratings && product.ratings.length > 0 ? (
                 product.ratings.map((review, index) => (
                   <Card key={index} sx={{ mb: 2 }}>
@@ -502,6 +772,52 @@ const ProductDetail = () => {
           )}
         </Box>
       </Paper>
+      
+      {/* Share Menu */}
+      <Menu
+        anchorEl={shareMenuAnchor}
+        open={shareMenuOpen}
+        onClose={handleShareMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+      >
+        <MenuItemUI onClick={handleCopyLink}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Copy Link</ListItemText>
+        </MenuItemUI>
+        <MenuItemUI onClick={handleShareFacebook}>
+          <ListItemIcon>
+            <FacebookIcon fontSize="small" color="primary" />
+          </ListItemIcon>
+          <ListItemText>Facebook</ListItemText>
+        </MenuItemUI>
+        <MenuItemUI onClick={handleShareTwitter}>
+          <ListItemIcon>
+            <TwitterIcon fontSize="small" sx={{ color: '#1DA1F2' }} />
+          </ListItemIcon>
+          <ListItemText>Twitter</ListItemText>
+        </MenuItemUI>
+        <MenuItemUI onClick={handleShareWhatsApp}>
+          <ListItemIcon>
+            <WhatsAppIcon fontSize="small" sx={{ color: '#25D366' }} />
+          </ListItemIcon>
+          <ListItemText>WhatsApp</ListItemText>
+        </MenuItemUI>
+        <MenuItemUI onClick={handleShareEmail}>
+          <ListItemIcon>
+            <EmailIcon fontSize="small" color="action" />
+          </ListItemIcon>
+          <ListItemText>Email</ListItemText>
+        </MenuItemUI>
+      </Menu>
       
       {/* Notification snackbar */}
       <Snackbar

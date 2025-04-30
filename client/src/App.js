@@ -25,6 +25,7 @@ import Inventory from './pages/admin/Inventory';
 import AdminOrders from './pages/admin/Orders';
 import Reports from './pages/admin/Reports';
 import AdminProfile from './pages/admin/Profile';
+import Messages from './pages/admin/Messages';
 
 // Components
 import Header from './components/Header';
@@ -34,6 +35,7 @@ import Loader from './components/Loader';
 // Context
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -176,68 +178,69 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <CartProvider>
-          <Router>
-            <Routes>
-              {/* Admin Login */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/*" element={
-                <AdminProtectedRoute>
-                  <AdminLayout>
+          <FavoritesProvider>
+            <Router>
+              <Routes>
+                {/* Admin Login */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin/*" element={
+                  <AdminProtectedRoute>
+                    <AdminLayout>
+                      <Routes>
+                        <Route path="/" element={<AdminDashboard />} />
+                        <Route path="/dashboard" element={<AdminDashboard />} />
+                        <Route path="/inventory" element={<Inventory />} />
+                        <Route path="/orders" element={<AdminOrders />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/profile" element={<AdminProfile />} />
+                        <Route path="/messages" element={<Messages />} />
+                        {/* Add other admin routes here */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </AdminLayout>
+                  </AdminProtectedRoute>
+                } />
+                
+                {/* Customer Routes */}
+                <Route path="/*" element={
+                  <CustomerLayout>
                     <Routes>
-                      <Route path="/" element={<AdminDashboard />} />
-                      <Route path="/dashboard" element={<AdminDashboard />} />
-                      <Route path="/inventory" element={<Inventory />} />
-                      <Route path="/orders" element={<AdminOrders />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/profile" element={<AdminProfile />} />
-                      {/* Add other admin routes here */}
+                      <Route path="/" element={<Home />} />
+                      <Route path="/products" element={<ProductList />} />
+                      <Route path="/products/:id" element={<ProductDetail />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={
+                        <CustomerProtectedRoute>
+                          <Checkout />
+                        </CustomerProtectedRoute>
+                      } />
+                      <Route path="/orders" element={
+                        <CustomerProtectedRoute>
+                          <Orders />
+                        </CustomerProtectedRoute>
+                      } />
+                      <Route path="/orders/:id" element={
+                        <CustomerProtectedRoute>
+                          <OrderDetail />
+                        </CustomerProtectedRoute>
+                      } />
+                      <Route path="/profile" element={
+                        <CustomerProtectedRoute>
+                          <ProfilePage />
+                        </CustomerProtectedRoute>
+                      } />
+                      <Route path="/login" element={<CustomerLogin />} />
+                      <Route path="/register" element={<CustomerRegister />} />
+                      <Route path="/support" element={<CustomerSupport />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </AdminLayout>
-                </AdminProtectedRoute>
-              } />
-              
-              {/* Auth Pages - No Header/Footer */}
-              <Route path="/login" element={<CustomerLogin />} />
-              <Route path="/register" element={<CustomerRegister />} />
-              
-              {/* Customer Routes */}
-              <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
-              <Route path="/profile" element={
-                <CustomerProtectedRoute>
-                  <CustomerLayout><ProfilePage /></CustomerLayout>
-                </CustomerProtectedRoute>
-              } />
-              <Route path="/orders" element={
-                <CustomerProtectedRoute>
-                  <CustomerLayout><Orders /></CustomerLayout>
-                </CustomerProtectedRoute>
-              } />
-              <Route path="/orders/:id" element={
-                <CustomerProtectedRoute>
-                  <CustomerLayout><OrderDetail /></CustomerLayout>
-                </CustomerProtectedRoute>
-              } />
-              <Route path="/cart" element={
-                <CustomerProtectedRoute>
-                  <CustomerLayout><Cart /></CustomerLayout>
-                </CustomerProtectedRoute>
-              } />
-              <Route path="/products" element={<CustomerLayout><ProductList /></CustomerLayout>} />
-              <Route path="/products/:id" element={<CustomerLayout><ProductDetail /></CustomerLayout>} />
-              <Route path="/checkout" element={
-                <CustomerProtectedRoute>
-                  <CustomerLayout><Checkout /></CustomerLayout>
-                </CustomerProtectedRoute>
-              } />
-              <Route path="/support" element={<CustomerLayout><CustomerSupport /></CustomerLayout>} />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<CustomerLayout><NotFound /></CustomerLayout>} />
-            </Routes>
-          </Router>
+                  </CustomerLayout>
+                } />
+              </Routes>
+            </Router>
+          </FavoritesProvider>
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>

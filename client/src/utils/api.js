@@ -1,11 +1,14 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../constants/apiConfig';
 
 // Create an instance of axios with default configuration
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  // Add a timeout to prevent long-hanging requests
+  timeout: 15000
 });
 
 // Add a request interceptor to add authentication token
@@ -31,6 +34,25 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       // You can redirect to login page or dispatch a logout action here
     }
+    
+    // Log API errors for debugging
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.warn('API Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+        url: error.config.url
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.warn('API Error Request:', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.warn('API Error Setup:', error.message);
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -81,6 +103,32 @@ export const userAPI = {
   updateProfile: (userData) => api.put('/users/profile', userData),
   updatePassword: (currentPassword, newPassword) => 
     api.put('/users/password', { currentPassword, newPassword })
+};
+
+// Users API
+export const usersAPI = {
+  getUserProfile: () => api.get('/users/me'),
+  updateUserProfile: (userData) => api.put('/users/me', userData),
+  changePassword: (passwordData) => api.put('/users/password', passwordData),
+  uploadAvatar: (formData) => api.post('/users/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
+  getFavorites: () => api.get('/users/favorites'),
+  addToFavorites: (productId) => api.post(`/users/favorites/${productId}`),
+  removeFromFavorites: (productId) => api.delete(`/users/favorites/${productId}`)
+};
+
+// Conversations API
+export const conversationsAPI = {
+  getAllConversations: () => api.get('/conversations'),
+  getUserConversations: () => api.get('/conversations/user'),
+  getConversation: (id) => api.get(`/conversations/${id}`),
+  createConversation: (data) => api.post('/conversations', data),
+  addMessage: (id, text) => api.post(`/conversations/${id}/message`, { text }),
+  updateStatus: (id, status) => api.put(`/conversations/${id}/status`, { status }),
+  markAsRead: (id) => api.put(`/conversations/${id}/read`)
 };
 
 export default api; 
