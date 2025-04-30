@@ -254,6 +254,34 @@ router.get('/', [auth, admin], async (req, res) => {
   }
 });
 
+// @route   GET api/users/me
+// @desc    Get user profile
+// @access  Private
+router.get('/me', auth, async (req, res) => {
+  try {
+    console.log('GET /api/users/me with token');
+    console.log('Auth Headers:', {
+      auth: req.header('x-auth-token'),
+      authLength: req.header('x-auth-token') ? req.header('x-auth-token').length : 0,
+      contentType: req.header('Content-Type'),
+      authHeader: req.header('Authorization')
+    });
+    
+    // Get user profile data
+    const user = await User.findById(req.user.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    
+    console.log('User profile fetched successfully');
+    res.json(user);
+  } catch (err) {
+    console.error('Error in GET /me:', err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // @route   GET api/users/profile
 // @desc    Get user profile
 // @access  Private

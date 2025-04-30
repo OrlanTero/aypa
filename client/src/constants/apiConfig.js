@@ -7,7 +7,7 @@
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Base API URLs
-const DEV_API_URL = 'http://localhost:5000/api';
+const DEV_API_URL = 'http://localhost:5005/api';
 const PROD_API_URL = '/api'; // Same domain in production
 
 // Export the appropriate base URL based on environment

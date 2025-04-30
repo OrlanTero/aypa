@@ -169,7 +169,7 @@ The project structure follows a client-server architecture:
    - Check for any firewall restrictions
 
 2. **Port Conflicts**:
-   - The server uses port 5000 by default
+   - The server uses port 5005 by default
    - The client uses port 3000 by default
    - If these ports are in use, you may need to modify the configurations
 

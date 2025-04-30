@@ -1,5 +1,6 @@
 import defaultProductImage from '../assets/default-product.jpg';
 import defaultUserAvatar from '../assets/default-avatar.png';
+import { API_BASE_URL } from '../constants/apiConfig';
 
 /**
  * Helper function to get the full image URL from a relative path
@@ -19,9 +20,7 @@ export const getImageUrl = (imagePath) => {
 
   // For local uploads, we need to construct the full URL
   // Development vs production environments
-  const baseUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000' 
-    : '';
+  const baseUrl = API_BASE_URL;
   
   // If the path already includes 'uploads/', don't add another slash
   const path = imagePath.startsWith('uploads/') ? imagePath : `${imagePath}`;
