@@ -53,6 +53,29 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET api/products/filters/options
+// @desc    Get all unique categories, sizes, and colors
+// @access  Public
+router.get('/filters/options', async (req, res) => {
+  try {
+    const products = await Product.find();
+    
+    // Extract unique categories, sizes, and colors
+    const categories = [...new Set(products.map(product => product.category))];
+    const sizes = [...new Set(products.flatMap(product => product.sizes || []))];
+    const colors = [...new Set(products.flatMap(product => product.colors || []))];
+    
+    res.json({
+      categories,
+      sizes,
+      colors
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // @route   GET api/products/featured
 // @desc    Get featured products
 // @access  Public

@@ -356,6 +356,71 @@ const Inventory = () => {
                               ? `${product.description.substring(0, 60)}...`
                               : product.description}
                           </Typography>
+                          
+                          {/* Display available colors */}
+                          {product.colors && product.colors.length > 0 && (
+                            <Box sx={{ display: 'flex', mt: 1, gap: 0.5, flexWrap: 'wrap' }}>
+                              {product.colors.map(color => {
+                                // Get standardized color (lowercase) for CSS
+                                const colorLower = color.toLowerCase();
+                                // Check if it's a light color needing special handling
+                                const isLightColor = ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(colorLower);
+                                
+                                return (
+                                  <Box 
+                                    key={color}
+                                    sx={{ 
+                                      width: 14, 
+                                      height: 14, 
+                                      borderRadius: '50%', 
+                                      bgcolor: colorLower,
+                                      border: `1px solid ${isLightColor ? '#999' : '#ddd'}`,
+                                      boxShadow: isLightColor 
+                                        ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' 
+                                        : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                                      position: 'relative',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    title={color}
+                                  >
+                                    {colorLower === 'white' && (
+                                      <Box 
+                                        sx={{
+                                          width: '5px',
+                                          height: '5px',
+                                          borderRadius: '50%',
+                                          border: '1px solid #999',
+                                          backgroundColor: 'transparent'
+                                        }}
+                                      />
+                                    )}
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          )}
+                          
+                          {/* Display available sizes */}
+                          {product.sizes && product.sizes.length > 0 && (
+                            <Box sx={{ display: 'flex', mt: 0.5, gap: 0.5, flexWrap: 'wrap' }}>
+                              {product.sizes.map(size => (
+                                <Typography 
+                                  key={size} 
+                                  variant="caption" 
+                                  sx={{ 
+                                    px: 0.5, 
+                                    border: '1px solid #eee', 
+                                    borderRadius: 0.5,
+                                    fontSize: '0.625rem'
+                                  }}
+                                >
+                                  {size}
+                                </Typography>
+                              ))}
+                            </Box>
+                          )}
                         </Box>
                       </Box>
                     </TableCell>

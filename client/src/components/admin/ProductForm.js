@@ -45,6 +45,26 @@ const suggestedColors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Na
 // Available colors to match backend validation
 const availableColors = ['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Navy', 'Gray', 'Brown'];
 
+// Helper function to determine contrasting text color for a background color
+const getContrastTextColor = (bgColor) => {
+  // Define known dark colors that need white text
+  const darkColors = ['black', 'navy', 'darkblue', 'darkgreen', 'brown', 'purple', 'maroon', 'indigo', 'gray'];
+  
+  // Check if the color is in our known dark colors list
+  if (darkColors.includes(bgColor.toLowerCase())) {
+    return '#fff';
+  }
+  
+  // Color keywords that should have black text
+  const lightColors = ['white', 'yellow', 'beige', 'ivory', 'cream', 'pink', 'lightblue', 'lightgreen'];
+  if (lightColors.includes(bgColor.toLowerCase())) {
+    return '#000';
+  }
+  
+  // For named colors we don't explicitly know, default to black text
+  return '#000';
+};
+
 const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => {
   const isEditMode = Boolean(product);
   
@@ -659,14 +679,79 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                         value={newColor}
                         label="Select Color"
                         onChange={(e) => setNewColor(e.target.value)}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box 
+                              sx={{ 
+                                width: 16, 
+                                height: 16, 
+                                borderRadius: '50%', 
+                                bgcolor: selected.toLowerCase(),
+                                border: ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(selected.toLowerCase()) 
+                                  ? '1px solid #999' 
+                                  : '1px solid #ddd',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {selected.toLowerCase() === 'white' && (
+                                <Box 
+                                  sx={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    border: '1px solid #999',
+                                    backgroundColor: 'transparent'
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            {selected}
+                          </Box>
+                        )}
                       >
                         {suggestedColors
                           .filter(color => !formData.colors.includes(color))
-                          .map((color) => (
-                            <MenuItem key={color} value={color}>
-                              {color}
-                            </MenuItem>
-                          ))}
+                          .map((color) => {
+                            const colorLower = color.toLowerCase();
+                            const isLightColor = ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(colorLower);
+                            
+                            return (
+                              <MenuItem key={color} value={color}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Box 
+                                    sx={{ 
+                                      width: 16, 
+                                      height: 16, 
+                                      borderRadius: '50%', 
+                                      bgcolor: colorLower,
+                                      border: `1px solid ${isLightColor ? '#999' : '#ddd'}`,
+                                      boxShadow: isLightColor 
+                                        ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' 
+                                        : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    {colorLower === 'white' && (
+                                      <Box 
+                                        sx={{
+                                          width: '6px',
+                                          height: '6px',
+                                          borderRadius: '50%',
+                                          border: '1px solid #999',
+                                          backgroundColor: 'transparent'
+                                        }}
+                                      />
+                                    )}
+                                  </Box>
+                                  {color}
+                                </Box>
+                              </MenuItem>
+                            );
+                          })}
                       </Select>
                     </FormControl>
                     <Button 
@@ -699,17 +784,31 @@ const ProductForm = ({ open, handleClose, product = null, onSubmitSuccess }) => 
                   </Box>
                   
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {formData.colors.map((color) => (
-                      <Chip
-                        key={color}
-                        label={color}
-                        onDelete={() => handleRemoveColor(color)}
-                        sx={{
-                          backgroundColor: color.toLowerCase(),
-                          color: ['white', 'black', 'navy', 'darkblue', 'darkgreen'].includes(color.toLowerCase()) ? '#fff' : '#000'
-                        }}
-                      />
-                    ))}
+                    {formData.colors.map((color) => {
+                      const colorLower = color.toLowerCase();
+                      const isLightColor = ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(colorLower);
+                      const textColor = getContrastTextColor(colorLower);
+                      
+                      return (
+                        <Chip
+                          key={color}
+                          label={color}
+                          onDelete={() => handleRemoveColor(color)}
+                          sx={{
+                            backgroundColor: colorLower,
+                            color: textColor,
+                            border: isLightColor ? '1px solid #bbb' : 'none',
+                            '& .MuiChip-deleteIcon': {
+                              color: textColor,
+                              '&:hover': {
+                                color: textColor,
+                                opacity: 0.7
+                              }
+                            }
+                          }}
+                        />
+                      );
+                    })}
                   </Box>
                 </Grid>
               </Grid>

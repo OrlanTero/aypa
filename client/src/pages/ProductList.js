@@ -24,7 +24,8 @@ import {
   Stack,
   Divider,
   Snackbar,
-  Alert
+  Alert,
+  IconButton
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -40,7 +41,8 @@ import { getProductImageUrl, handleImageError } from '../utils/imageUtils';
 import defaultProductImage from '../assets/default-product.jpg';
 import { setDocumentTitle, PAGE_TITLES } from '../utils/titleUtils';
 
-const categories = ['All', 'TShirt', 'IDLaces', 'Accessories', 'Other'];
+// Replace hardcoded categories with empty array initially
+const categories = ['All']; // We'll add 'All' option and then populate from API
 const sortOptions = [
   { value: 'newest', label: 'Newest' },
   { value: 'price_low', label: 'Price: Low to High' },
@@ -74,6 +76,9 @@ const ProductList = () => {
   // Products per page
   const ITEMS_PER_PAGE = 9;
 
+  // Replace these states with dynamic categories from API
+  const [availableCategories, setAvailableCategories] = useState(['All']);
+
   useEffect(() => {
     setDocumentTitle(PAGE_TITLES.PRODUCTS);
     // Parse query params and set state
@@ -97,12 +102,16 @@ const ProductList = () => {
         
         setProducts(allProducts);
         
-        // Determine available sizes and colors
-        const sizes = [...new Set(allProducts.flatMap(product => product.sizes || []))];
-        const colors = [...new Set(allProducts.flatMap(product => product.colors || []))];
+        // Fetch filter options from the new API endpoint
+        const filtersRes = await axios.get('/api/products/filters/options');
+        const filterOptions = filtersRes.data;
         
-        setAvailableSizes(sizes);
-        setAvailableColors(colors);
+        // Set available categories, including 'All' option
+        setAvailableCategories(['All', ...filterOptions.categories]);
+        
+        // Set available sizes and colors from the API
+        setAvailableSizes(filterOptions.sizes);
+        setAvailableColors(filterOptions.colors);
         
         // Find the highest price for price range slider
         const highestPrice = Math.max(...allProducts.map(product => product.price), 0);
@@ -237,8 +246,14 @@ const ProductList = () => {
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-      const matchesSize = selectedSize === '' || (product.sizes && product.sizes.includes(selectedSize));
-      const matchesColor = selectedColor === '' || (product.colors && product.colors.includes(selectedColor));
+      
+      // Improve size filtering to handle arrays properly
+      const matchesSize = selectedSize === '' || 
+        (Array.isArray(product.sizes) && product.sizes.includes(selectedSize));
+      
+      // Improve color filtering to handle arrays properly
+      const matchesColor = selectedColor === '' || 
+        (Array.isArray(product.colors) && product.colors.includes(selectedColor));
       
       return matchesCategory && matchesSearch && matchesPrice && matchesSize && matchesColor;
     })
@@ -331,7 +346,7 @@ const ProductList = () => {
                   label="Category"
                   onChange={handleCategoryChange}
                 >
-                  {categories.map((category) => (
+                  {availableCategories.map((category) => (
                     <MenuItem key={category} value={category}>
                       {category}
                     </MenuItem>
@@ -368,13 +383,65 @@ const ProductList = () => {
                     value={selectedColor}
                     label="Color"
                     onChange={handleColorChange}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {selected && (
+                          <Box 
+                            sx={{ 
+                              width: 14, 
+                              height: 14, 
+                              borderRadius: '50%', 
+                              bgcolor: selected.toLowerCase(),
+                              border: ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(selected.toLowerCase()) 
+                                ? '1px solid #999' 
+                                : '1px solid #ddd' 
+                            }} 
+                          />
+                        )}
+                        {selected || "All Colors"}
+                      </Box>
+                    )}
                   >
                     <MenuItem value="">All Colors</MenuItem>
-                    {availableColors.map((color) => (
-                      <MenuItem key={color} value={color}>
-                        {color}
-                      </MenuItem>
-                    ))}
+                    {availableColors.map((color) => {
+                      const colorLower = color.toLowerCase();
+                      const isLightColor = ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(colorLower);
+                      
+                      return (
+                        <MenuItem key={color} value={color}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box 
+                              sx={{ 
+                                width: 16, 
+                                height: 16, 
+                                borderRadius: '50%', 
+                                bgcolor: colorLower,
+                                border: `1px solid ${isLightColor ? '#999' : '#ddd'}`,
+                                boxShadow: isLightColor 
+                                  ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' 
+                                  : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {colorLower === 'white' && (
+                                <Box 
+                                  sx={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    border: '1px solid #999',
+                                    backgroundColor: 'transparent'
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            {color}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               )}
@@ -518,124 +585,114 @@ const ProductList = () => {
                         )}
                       </Box>
                       
-                      <CardContent sx={{ 
-                        flexGrow: 1, 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        p: { xs: 1.5, sm: 2 },
-                        width: '100%'
-                      }}>
-                        <Typography 
-                          gutterBottom 
-                          variant="h6" 
-                          component="h2" 
-                          sx={{ 
-                            mb: 0.5,
-                            fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
-                            lineHeight: 1.2,
-                            fontWeight: 600,
-                            height: '2.4em',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical'
-                          }}
-                        >
+                      <CardContent sx={{ flexGrow: 1, pt: 1 }}>
+                        <Typography variant="h6" component="h3" sx={{ fontSize: '1rem', mb: 1, fontWeight: 'bold', height: '3rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {product.name}
                         </Typography>
                         
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Rating 
-                            value={product.ratings?.length ? product.ratings.reduce((acc, curr) => acc + curr.rating, 0) / product.ratings.length : 0} 
-                            precision={0.5} 
-                            readOnly 
-                            size="small"
-                          />
-                          <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                            ({product.ratings?.length || 0})
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 'bold' }}>
+                            {formatCurrency(product.price)}
                           </Typography>
+                          
+                          {product.rating > 0 && (
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Rating value={getAverageRating(product.ratings)} precision={0.5} size="small" readOnly />
+                            </Box>
+                          )}
                         </Box>
                         
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{
-                            mb: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            height: '2.5em'
-                          }}
-                        >
-                          {product.description}
-                        </Typography>
-                        
-                        <Typography 
-                          variant="h6" 
-                          color="primary" 
-                          sx={{ 
-                            mt: 'auto',
-                            fontWeight: 'bold',
-                            fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                          }}
-                        >
-                          {formatCurrency(product.price)}
-                        </Typography>
-                        
-                        {/* Size chips */}
-                        {product.sizes && product.sizes.length > 0 && (
-                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, height: '32px', overflow: 'hidden' }}>
-                            {product.sizes.slice(0, 3).map((size) => (
-                              <Chip key={size} label={size} size="small" variant="outlined" sx={{ mr: 0.5, mb: 0.5 }} />
-                            ))}
-                            {product.sizes.length > 3 && (
-                              <Chip label={`+${product.sizes.length - 3}`} size="small" variant="outlined" />
-                            )}
+                        {/* Display available colors as small color circles */}
+                        {product.colors && product.colors.length > 0 && (
+                          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {product.colors.map(color => {
+                              // Get standardized color (lowercase) for CSS
+                              const colorLower = color.toLowerCase();
+                              // Check if it's a light color needing special handling
+                              const isLightColor = ['white', 'yellow', 'beige', 'ivory', 'cream'].includes(colorLower);
+                              
+                              return (
+                                <Box 
+                                  key={color}
+                                  sx={{ 
+                                    width: 16, 
+                                    height: 16, 
+                                    borderRadius: '50%', 
+                                    bgcolor: colorLower,
+                                    border: `1px solid ${isLightColor ? '#999' : '#ddd'}`,
+                                    boxShadow: isLightColor 
+                                      ? 'inset 0 0 0 1px rgba(0,0,0,0.2)' 
+                                      : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                                    position: 'relative',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  title={color}
+                                >
+                                  {colorLower === 'white' && (
+                                    <Box 
+                                      sx={{
+                                        width: '6px',
+                                        height: '6px',
+                                        borderRadius: '50%',
+                                        border: '1px solid #999',
+                                        backgroundColor: 'transparent'
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                              );
+                            })}
                           </Box>
                         )}
-                        {(!product.sizes || product.sizes.length === 0) && (
-                          <Box sx={{ mt: 1, height: '32px' }}></Box>
+                        
+                        {/* Display available sizes as small chips */}
+                        {product.sizes && product.sizes.length > 0 && (
+                          <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {product.sizes.map(size => (
+                              <Chip 
+                                key={size}
+                                label={size}
+                                size="small"
+                                variant="outlined"
+                                sx={{ 
+                                  height: 20, 
+                                  fontSize: '0.625rem',
+                                  '& .MuiChip-label': { px: 0.5 }
+                                }}
+                              />
+                            ))}
+                          </Box>
                         )}
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => navigate(`/products/${product._id}`)}
+                            sx={{ borderRadius: 4, textTransform: 'none' }}
+                          >
+                            View Details
+                          </Button>
+                          
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddToCart(product);
+                            }}
+                            sx={{ 
+                              border: '1px solid', 
+                              borderColor: 'primary.main',
+                              '&:hover': { bgcolor: 'primary.main', color: 'white' }
+                            }}
+                          >
+                            <CartIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
                       </CardContent>
-                      <Divider />
-                      <Box sx={{ 
-                        p: { xs: 1.5, sm: 2 }, 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        width: '100%'
-                      }}>
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
-                          component={Link} 
-                          to={`/products/${product._id}`}
-                          sx={{ 
-                            minWidth: { xs: '60px', sm: 'auto' }, 
-                            fontSize: { xs: '0.7rem', sm: '0.8125rem' },
-                            px: { xs: 1, sm: 2 }
-                          }}
-                        >
-                          Details
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          disabled={product.stock === 0}
-                          onClick={() => handleAddToCart(product)}
-                          startIcon={<CartIcon />}
-                          sx={{ 
-                            minWidth: { xs: '60px', sm: 'auto' }, 
-                            fontSize: { xs: '0.7rem', sm: '0.8125rem' },
-                            px: { xs: 1, sm: 2 }
-                          }}
-                        >
-                          {product.stock === 0 ? 'Out of Stock' : 'Add'}
-                        </Button>
-                      </Box>
                     </Card>
                   </Grid>
                 ))}
