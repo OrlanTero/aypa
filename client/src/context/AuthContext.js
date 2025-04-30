@@ -146,6 +146,31 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
+  // Check token validity and reset it in headers
+  const refreshToken = () => {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
+        // Check if token is expired
+        const decoded = jwtDecode(storedToken);
+        if (decoded.exp * 1000 < Date.now()) {
+          // Token expired, log out
+          logout();
+          return false;
+        }
+        
+        // Token is valid, set it in headers
+        axios.defaults.headers.common['x-auth-token'] = storedToken;
+        return true;
+      } catch (err) {
+        console.error('Error refreshing token:', err);
+        logout();
+        return false;
+      }
+    }
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -160,7 +185,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         updateUser,
-        setError
+        setError,
+        refreshToken
       }}
     >
       {children}

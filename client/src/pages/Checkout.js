@@ -34,7 +34,7 @@ import {
 import axios from 'axios';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
-import { ORDER_ENDPOINTS, USER_ENDPOINTS } from '../constants/apiConfig';
+import { ORDER_ENDPOINTS, USER_ENDPOINTS, API_BASE_URL } from '../constants/apiConfig';
 import { formatCurrency } from '../utils/formatters';
 import defaultProductImage from '../assets/default-product.jpg';
 import gcashQR from '../assets/gcash-qr.png';
@@ -93,7 +93,7 @@ const citiesByRegion = {
 const Checkout = () => {
   const navigate = useNavigate();
   const { cart, loading: cartLoading, clearCart } = useContext(CartContext);
-  const { user, token, isAuthenticated } = useContext(AuthContext);
+  const { user, token, isAuthenticated, refreshToken } = useContext(AuthContext);
   
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -127,10 +127,71 @@ const Checkout = () => {
   // Form validation errors
   const [formErrors, setFormErrors] = useState({});
 
+  // Define the fetchAddresses function outside useEffect
+  const fetchAddresses = async () => {
+    try {
+      setLoading(true);
+      // Ensure the token is still valid
+      const isTokenValid = refreshToken();
+      if (!isTokenValid) {
+        setError('Authentication required. Please log in again.');
+        setLoading(false);
+        navigate('/login', { state: { from: '/checkout' } });
+        return;
+      }
+      
+      // Make sure the token is set in headers for this specific request
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        }
+      };
+      
+      console.log('Fetching user profile with token:', token.substring(0, 10) + '...');
+      
+      const res = await axios.get(USER_ENDPOINTS.PROFILE, config);
+      
+      if (res.data && res.data.address && res.data.address.street) {
+        console.log('Found existing address:', res.data.address);
+        setAddresses([res.data.address]);
+        setSelectedAddressId('0'); // Select the first address if it exists
+        
+        // Also set the region for delivery fee calculation
+        if (res.data.address.state) {
+          setSelectedRegion(res.data.address.state);
+        }
+      } else {
+        console.log('No address found, showing new address form');
+        // If no address is found, default to new address form
+        setSelectedAddressId('new');
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching addresses:', err);
+      
+      if (err.response && err.response.status === 403) {
+        setError('Authentication required. Please log in again.');
+        // Redirect to login
+        setTimeout(() => {
+          navigate('/login', { state: { from: '/checkout' } });
+        }, 2000);
+      } else {
+        setError('Failed to load your saved addresses. You can create a new one below.');
+        // Continue with checkout using a new address
+        setSelectedAddressId('new');
+      }
+      
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     setDocumentTitle(PAGE_TITLES.CHECKOUT);
+    
     // Redirect if not authenticated
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !token) {
       navigate('/login', { state: { from: '/checkout' } });
       return;
     }
@@ -141,69 +202,16 @@ const Checkout = () => {
       return;
     }
 
+    // Refresh token and set in headers to fix 403 errors
+    const isTokenValid = refreshToken();
+    if (!isTokenValid) {
+      navigate('/login', { state: { from: '/checkout' } });
+      return;
+    }
+    
     // Load user addresses
-    const fetchAddresses = async () => {
-      try {
-        setLoading(true);
-        // Ensure the token is available
-        if (!token) {
-          console.error('No authentication token available');
-          setError('Authentication required. Please log in again.');
-          setLoading(false);
-          navigate('/login', { state: { from: '/checkout' } });
-          return;
-        }
-
-        // In a real app, you'd have an endpoint for fetching saved addresses
-        // For now, just use the profile data
-        const config = {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          }
-        };
-
-        console.log('Fetching user profile with token:', token.substring(0, 10) + '...');
-        
-        const res = await axios.get(USER_ENDPOINTS.PROFILE, config);
-        
-        if (res.data && res.data.address && res.data.address.street) {
-          console.log('Found existing address:', res.data.address);
-          setAddresses([res.data.address]);
-          setSelectedAddressId('0'); // Select the first address if it exists
-          
-          // Also set the region for delivery fee calculation
-          if (res.data.address.state) {
-            setSelectedRegion(res.data.address.state);
-          }
-        } else {
-          console.log('No address found, showing new address form');
-          // If no address is found, default to new address form
-          setSelectedAddressId('new');
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching addresses:', err);
-        
-        if (err.response && err.response.status === 403) {
-          setError('Authentication required. Please log in again.');
-          // Redirect to login
-          setTimeout(() => {
-            navigate('/login', { state: { from: '/checkout' } });
-          }, 2000);
-        } else {
-          setError('Failed to load your saved addresses. You can create a new one below.');
-          // Continue with checkout using a new address
-          setSelectedAddressId('new');
-        }
-        
-        setLoading(false);
-      }
-    };
-
     fetchAddresses();
-  }, [isAuthenticated, cart.items.length, cartLoading, navigate, token]);
+  }, [isAuthenticated, cart.items.length, cartLoading, navigate, token, refreshToken]);
 
   // Update available cities when region changes
   useEffect(() => {
@@ -381,10 +389,28 @@ const Checkout = () => {
     try {
       setLoading(true);
       
-      // Ensure token is available
-      if (!token) {
-        throw new Error('Authentication required to place an order');
+      // Refresh token to ensure it's valid
+      const isTokenValid = refreshToken();
+      if (!isTokenValid) {
+        setNotification({
+          open: true,
+          message: 'Your session has expired. Please log in again.',
+          severity: 'error'
+        });
+        setTimeout(() => {
+          navigate('/login', { state: { from: '/checkout' } });
+        }, 2000);
+        setLoading(false);
+        return;
       }
+      
+      // Make sure the token is set in headers for this request
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        }
+      };
 
       // Validate payment details
       if (!validatePaymentDetails()) {
@@ -440,15 +466,11 @@ const Checkout = () => {
       // Log the full request
       console.log('Full order request:', JSON.stringify(requestData));
       
+      // Proceed with order creation
       const res = await axios.post(
         ORDER_ENDPOINTS.CREATE,
         requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          }
-        }
+        config
       );
       
       console.log('Order created successfully:', res.data);
