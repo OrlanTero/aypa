@@ -29,7 +29,8 @@ import {
   PersonOutline as PersonIcon,
   ShoppingBag as ShoppingBagIcon,
   Close as CloseIcon,
-  HelpOutline as HelpOutlineIcon
+  HelpOutline as HelpOutlineIcon,
+  Favorite as FavoriteIcon
 } from '@mui/icons-material';
 
 import { AuthContext } from '../context/AuthContext';
@@ -109,7 +110,8 @@ const Header = () => {
     { label: 'Home', path: '/', icon: <StorefrontIcon /> },
     { label: 'Products', path: '/products', icon: <ShoppingBagIcon /> },
     { label: 'Support', path: '/support', icon: <HelpOutlineIcon /> },
-    { label: 'Cart', path: '/cart', icon: <CartIcon /> }
+    { label: 'Cart', path: '/cart', icon: <CartIcon /> },
+    { label: 'Favorites', path: '/favorites', icon: <FavoriteIcon />, protected: true }
   ];
 
   const isAdmin = user?.role === 'admin';
@@ -176,41 +178,43 @@ const Header = () => {
           </Box>
 
           {/* Desktop navigation */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {navItems.map((item) => (
-              <Button
-                key={item.label}
-                component={RouterLink}
-                to={item.path}
-                startIcon={item.icon}
-                sx={{ 
-                  color: 'white', 
-                  display: 'flex', 
-                  mx: 1.5,
-                  fontWeight: 500,
-                  position: 'relative',
-                  '&:hover': {
-                    color: theme.palette.accent.main,
-                    backgroundColor: 'transparent'
-                  },
-                  '&:hover::after': {
-                    width: '70%'
-                  },
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 5,
-                    left: '15%',
-                    width: 0,
-                    height: 2,
-                    bgcolor: theme.palette.accent.main,
-                    transition: 'width 0.3s ease'
-                  }
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, marginRight: 3 }}>
+            {navItems
+              .filter(item => !item.protected || (item.protected && isAuthenticated))
+              .map((item) => (
+                <Button
+                  key={item.label}
+                  component={RouterLink}
+                  to={item.path}
+                  startIcon={item.icon}
+                  sx={{ 
+                    color: 'white', 
+                    display: 'flex', 
+                    mx: 1.5,
+                    fontWeight: 500,
+                    position: 'relative',
+                    '&:hover': {
+                      color: theme.palette.accent.main,
+                      backgroundColor: 'transparent'
+                    },
+                    '&:hover::after': {
+                      width: '70%'
+                    },
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 5,
+                      left: '15%',
+                      width: 0,
+                      height: 2,
+                      bgcolor: theme.palette.accent.main,
+                      transition: 'width 0.3s ease'
+                    }
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
           </Box>
 
           {/* Search Bar - visible when searchOpen is true */}
@@ -414,6 +418,11 @@ const Header = () => {
                     My Orders
                   </MenuItem>
                   
+                  <MenuItem component={RouterLink} to="/favorites" sx={{ py: 1.5 }}>
+                    <FavoriteIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                    My Favorites
+                  </MenuItem>
+                  
                   {isAdmin && (
                     <MenuItem component={RouterLink} to="/admin" sx={{ py: 1.5 }}>
                       <DashboardIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
@@ -557,30 +566,32 @@ const Header = () => {
           </Box>
         )}
         
-        <Box sx={{ p: 2, mt: isAuthenticated ? 0 : 1 }}>
-          {navItems.map((item) => (
-            <Button
-              key={item.label}
-              component={RouterLink}
-              to={item.path}
-              startIcon={item.icon}
-              fullWidth
-              sx={{ 
-                color: 'white', 
-                justifyContent: 'flex-start',
-                py: 1.5,
-                mb: 1,
-                borderRadius: 2,
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.2)
-                }
-              }}
-              onClick={toggleMobileMenu}
-            >
-              {item.label}
-            </Button>
-          ))}
-          
+        <Box sx={{ p: 2 }}>
+          {navItems
+            .filter(item => !item.protected || (item.protected && isAuthenticated))
+            .map((item) => (
+              <Button
+                key={item.label}
+                component={RouterLink}
+                to={item.path}
+                startIcon={item.icon}
+                fullWidth
+                sx={{ 
+                  color: 'white', 
+                  justifyContent: 'flex-start',
+                  py: 1.5,
+                  mb: 1,
+                  borderRadius: 2,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.2)
+                  }
+                }}
+                onClick={toggleMobileMenu}
+              >
+                {item.label}
+              </Button>
+            ))}
+            
           {!isAuthenticated && (
             <Button
               variant="contained"

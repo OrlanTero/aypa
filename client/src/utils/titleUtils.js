@@ -26,6 +26,7 @@ export const PAGE_TITLES = {
   SUPPORT: 'Customer Support',
   LOGIN: 'Sign In',
   REGISTER: 'Create Account',
+  FAVORITES: 'My Favorites',
   NOT_FOUND: 'Page Not Found',
   // Admin pages
   ADMIN_DASHBOARD: 'Admin Dashboard',

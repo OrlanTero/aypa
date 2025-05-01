@@ -5,12 +5,13 @@ import { API_BASE_URL } from '../constants/apiConfig';
 /**
  * Helper function to get the full image URL from a relative path
  * @param {string} imagePath - The image path returned from the server
+ * @param {string} type - Type of image ('product' or 'avatar')
  * @returns {string} - The full image URL
  */
-export const getImageUrl = (imagePath) => {
+export const getImageUrl = (imagePath, type = 'product') => {
   if (!imagePath) return null;
   
-  console.log('getImageUrl processing path:', imagePath);
+  console.log('getImageUrl processing path:', imagePath, 'type:', type);
   
   // Check if it's already a full URL (e.g. from a CDN, S3, or external source)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
@@ -19,13 +20,20 @@ export const getImageUrl = (imagePath) => {
   }
 
   // For local uploads, we need to construct the full URL
-  // Development vs production environments
-  const baseUrl = API_BASE_URL;
+  const baseUrl = API_BASE_URL.replace('/api', ''); // Remove /api from the base URL
   
-  // If the path already includes 'uploads/', don't add another slash
-  const path = imagePath.startsWith('uploads/') ? imagePath : `${imagePath}`;
+  // Normalize path - replace Windows backslashes with forward slashes
+  let normalizedPath = imagePath.replace(/\\/g, '/');
   
-  const fullUrl = `${baseUrl}/${path}`;
+  // Get just the filename regardless of path format
+  const filename = normalizedPath.split('/').pop();
+  
+  // Use the appropriate path structure based on image type
+  const finalPath = type === 'avatar' 
+    ? `uploads/avatars/${filename}` 
+    : `uploads/products/${filename}`;
+  
+  const fullUrl = `${baseUrl}/${finalPath}`;
   console.log('Constructed URL:', fullUrl);
   return fullUrl;
 };
@@ -59,7 +67,7 @@ export const getUserAvatarUrl = (user) => {
     return defaultUserAvatar;
   }
   
-  return getImageUrl(user.avatar);
+  return getImageUrl(user.avatar, 'avatar');
 };
 
 /**
@@ -69,6 +77,7 @@ export const getUserAvatarUrl = (user) => {
  * @returns {function} - Function to handle image error
  */
 export const handleImageError = (defaultSrc = defaultProductImage, onError) => (event) => {
+  console.warn(`Image failed to load: ${event.target.src}`, event);
   if (onError) onError(event);
   event.target.onerror = null; // Prevent infinite error loop
   event.target.src = defaultSrc;

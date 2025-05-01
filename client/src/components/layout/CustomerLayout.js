@@ -33,12 +33,9 @@ import {
   Login,
   Logout,
   PersonAdd,
-  AccountCircle,
-  History,
-  FavoriteBorder,
-  Settings,
   KeyboardArrowRight,
-  HelpOutline
+  HelpOutline,
+  Favorite as FavoriteIcon
 } from '@mui/icons-material';
 import { AuthContext } from '../../context/AuthContext';
 import { CartContext } from '../../context/CartContext';
@@ -138,6 +135,14 @@ const CustomerLayout = ({ children }) => {
             <ListItemText primary="My Orders" />
             <KeyboardArrowRight fontSize="small" color="action" sx={{ opacity: 0.5 }} />
           </MenuItem>
+
+          <MenuItem onClick={() => { handleMenuClose(); navigate('/favorites'); }}>
+            <ListItemIcon>
+              <FavoriteIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="My Favorites" />
+          </MenuItem>
+
           
           <Divider />
           <MenuItem onClick={handleLogout} sx={{ color: theme.palette.error.main }}>

@@ -17,6 +17,7 @@ import OrderDetail from './pages/OrderDetail';
 import NotFound from './pages/NotFound';
 import ProfilePage from './pages/Profile';
 import CustomerSupport from './pages/CustomerSupport';
+import Favorites from './pages/Favorites';
 
 // Admin Pages
 import AdminLogin from './pages/admin/Login';
@@ -229,6 +230,11 @@ function App() {
                       <Route path="/profile" element={
                         <CustomerProtectedRoute>
                           <ProfilePage />
+                        </CustomerProtectedRoute>
+                      } />
+                      <Route path="/favorites" element={
+                        <CustomerProtectedRoute>
+                          <Favorites />
                         </CustomerProtectedRoute>
                       } />
                       <Route path="/login" element={<CustomerLogin />} />
